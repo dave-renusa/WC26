@@ -234,29 +234,31 @@ export function PicksForm({
           const teamNames = groupTeams.map((t) => t.name).join(" · ");
           return (
             <div key={g} className="card rounded-2xl overflow-hidden">
-              <div className="bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-900 px-5 py-4 flex items-center gap-3">
+              <div className="bg-gradient-to-br from-emerald-700 via-emerald-800 to-emerald-900 px-5 py-4 flex items-start gap-3">
                 <div className="shrink-0 w-12 h-12 rounded-xl bg-white/15 backdrop-blur border border-white/20 flex items-center justify-center">
                   <span className="text-2xl font-black text-white tracking-tighter">{g}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-100/70 font-bold">
-                    Group {g}
+                  <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-emerald-100/70 font-bold">
+                      Group {g}
+                    </div>
+                    <div className="shrink-0 flex gap-1">
+                      {groupTeams.map((t) => (
+                        <img
+                          key={t.id}
+                          src={`https://flagcdn.com/16x12/${t.flag_code}.png`}
+                          alt={t.name}
+                          title={t.name}
+                          width={16}
+                          height={12}
+                          className="rounded-[1px] shadow"
+                        />
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-sm font-semibold text-white truncate">{teamNames}</div>
-                </div>
-                <div className="shrink-0 flex flex-col gap-0.5 items-end">
-                  <div className="flex gap-1">
-                    {groupTeams.map((t) => (
-                      <img
-                        key={t.id}
-                        src={`https://flagcdn.com/16x12/${t.flag_code}.png`}
-                        alt={t.name}
-                        title={t.name}
-                        width={16}
-                        height={12}
-                        className="rounded-[1px] shadow"
-                      />
-                    ))}
+                  <div className="text-sm font-semibold text-white leading-snug break-words">
+                    {teamNames}
                   </div>
                 </div>
               </div>
