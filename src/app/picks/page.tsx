@@ -12,6 +12,20 @@ export default async function PicksPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/picks");
 
+  // Defense in depth: if the on_auth_user_created trigger missed this user
+  // (e.g. it didn't exist yet at signup time), backfill the profile so
+  // picks/third_place_picks/bonus_picks FK inserts don't fail later.
+  await supabase.from("profiles").upsert(
+    {
+      id: user.id,
+      email: user.email!,
+      display_name:
+        (user.user_metadata?.display_name as string | undefined) ??
+        user.email!.split("@")[0],
+    },
+    { onConflict: "id", ignoreDuplicates: true },
+  );
+
   const [
     { data: teams },
     { data: matches },
