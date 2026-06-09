@@ -66,6 +66,18 @@ export default function RulesPage() {
 
       <section className="mb-10">
         <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60 mb-3">
+          Draws in the group stage
+        </h2>
+        <div className="card-pitch rounded-2xl p-6 text-sm text-emerald-950/80 leading-relaxed">
+          Plenty of group matches end level. If a group game finishes drawn, you
+          earn <strong className="text-emerald-950">0.5 pts</strong> for picking either team
+          (your team didn&apos;t lose). Picking the actual winner is still worth the full
+          1 pt. Knockout matches can&apos;t draw — penalty shootouts produce a winner.
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60 mb-3">
           How locking works
         </h2>
         <div className="card rounded-2xl p-6 space-y-3 text-sm text-emerald-950/80 leading-relaxed">
