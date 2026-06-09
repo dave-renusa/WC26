@@ -16,6 +16,41 @@ type Props = {
 
 const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"] as const;
 
+// Likely 2026 World Cup Golden Boot candidates — feeds the datalist for
+// autocomplete to cut down on misspellings. Free text entry still allowed.
+const GOLDEN_BOOT_CANDIDATES = [
+  "Erling Haaland",
+  "Kylian Mbappé",
+  "Harry Kane",
+  "Lionel Messi",
+  "Vinícius Júnior",
+  "Lautaro Martínez",
+  "Julián Álvarez",
+  "Lamine Yamal",
+  "Jude Bellingham",
+  "Bukayo Saka",
+  "Cole Palmer",
+  "Florian Wirtz",
+  "Jamal Musiala",
+  "Kai Havertz",
+  "Cody Gakpo",
+  "Memphis Depay",
+  "Cristiano Ronaldo",
+  "Rafael Leão",
+  "Bruno Fernandes",
+  "Antoine Griezmann",
+  "Ousmane Dembélé",
+  "Romelu Lukaku",
+  "Federico Valverde",
+  "Darwin Núñez",
+  "Mohamed Salah",
+  "Achraf Hakimi",
+  "Christian Pulisic",
+  "Folarin Balogun",
+  "Raúl Jiménez",
+  "Alphonso Davies",
+];
+
 function fmtKickoff(iso: string | null): string {
   if (!iso) return "TBD";
   const d = new Date(iso);
@@ -365,6 +400,12 @@ export function PicksForm({
                 );
               })}
             </div>
+            <div className="mt-4 pt-3 border-t border-emerald-900/10 text-[11px] text-emerald-900/70 leading-relaxed">
+              <strong className="text-emerald-950">Standings tiebreaker:</strong> if multiple
+              players finish tied on total points, the winner is whoever guesses closest to
+              the <em>total goals scored in the Final</em>. You&apos;ll enter that number when
+              the Final&apos;s teams are set.
+            </div>
           </div>
 
           <div className="card-gold rounded-2xl p-5">
@@ -373,16 +414,29 @@ export function PicksForm({
             </div>
             <div className="text-lg font-bold text-emerald-950 mb-1">Golden Boot pick</div>
             <p className="text-xs text-emerald-950/60 mb-3">
-              Who scores the most goals at the tournament?
+              The Golden Boot is awarded to the player who scores the most goals across the
+              entire tournament. Pick who you think lifts it.
             </p>
             <input
               type="text"
               value={goldenBoot}
               onChange={(e) => saveGoldenBoot(e.target.value)}
               disabled={groupStageLocked}
+              list="golden-boot-candidates"
               placeholder="e.g. Erling Haaland"
               className="w-full px-3 py-2.5 rounded-lg border border-amber-700/20 bg-white focus:outline-none focus:ring-2 focus:ring-amber-600/40 focus:border-amber-600 text-emerald-950 disabled:opacity-60"
             />
+            <datalist id="golden-boot-candidates">
+              {GOLDEN_BOOT_CANDIDATES.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+            <p className="mt-2 text-[11px] text-amber-900/70 leading-relaxed">
+              <strong className="text-emerald-950">Tip:</strong> start typing and pick from
+              the dropdown for a clean match. Capitalization and accent marks are forgiven,
+              but <em>spelling has to be exact</em>. Use full name when possible. Borderline
+              spellings will be reviewed by the commissioner.
+            </p>
           </div>
         </div>
       </section>
