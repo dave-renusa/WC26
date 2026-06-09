@@ -48,6 +48,26 @@ const HOST_FLAGS = [
   { code: "mx", name: "Mexico" },
 ];
 
+// Six pick windows across the tournament. lockBy is the first kickoff of that
+// round (UTC) — picks for the round freeze at that moment. Dates straight from
+// the FIFA 2026 published schedule.
+const PICK_WINDOWS = [
+  { id: "group", label: "Groups",      matches: 72, lockBy: "2026-06-11", lockLabel: "Jun 11" },
+  { id: "r32",   label: "R32",         matches: 16, lockBy: "2026-06-28", lockLabel: "Jun 28" },
+  { id: "r16",   label: "R16",         matches:  8, lockBy: "2026-07-04", lockLabel: "Jul 4"  },
+  { id: "qf",    label: "Quarterfinals", matches: 4, lockBy: "2026-07-09", lockLabel: "Jul 9"  },
+  { id: "sf",    label: "Semifinals",  matches:  2, lockBy: "2026-07-14", lockLabel: "Jul 14" },
+  { id: "final", label: "Final",       matches:  1, lockBy: "2026-07-19", lockLabel: "Jul 19" },
+] as const;
+
+function getCurrentWindowId(): string | null {
+  const now = Date.now();
+  for (const w of PICK_WINDOWS) {
+    if (Date.parse(`${w.lockBy}T00:00:00Z`) > now) return w.id;
+  }
+  return null;
+}
+
 export default async function Home() {
   // Player count is best-effort — if Supabase is unreachable, the page should
   // still render with a 0 fallback rather than crash on first load.
@@ -65,6 +85,7 @@ export default async function Home() {
     /* fallback to 0 */
   }
   const payouts = computePayouts(playerCount);
+  const currentWindowId = getCurrentWindowId();
 
   return (
     <div className="flex-1 flex flex-col">
@@ -107,6 +128,111 @@ export default async function Home() {
           >
             See the Rules
           </Link>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-6 pb-12 w-full">
+        <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60">
+            Six pick windows · Bracket unlocks as the tournament resolves
+          </h2>
+          <span className="text-xs text-emerald-900/40">
+            You&apos;ll come back {PICK_WINDOWS.length - 1} more times after groups
+          </span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+          {PICK_WINDOWS.map((w, i) => {
+            const isCurrent = w.id === currentWindowId;
+            const isPast =
+              currentWindowId === null ||
+              PICK_WINDOWS.findIndex((x) => x.id === currentWindowId) > i;
+            return (
+              <div
+                key={w.id}
+                className={`relative rounded-2xl p-4 transition ${
+                  isCurrent
+                    ? "card-gold ring-2 ring-amber-500/40"
+                    : isPast
+                      ? "card opacity-50"
+                      : "card"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-mono text-emerald-900/40 tabular-nums">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  {isCurrent && (
+                    <span className="text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 rounded bg-amber-500 text-white">
+                      Now
+                    </span>
+                  )}
+                  {isPast && (
+                    <span className="text-[9px] text-emerald-900/40">✓</span>
+                  )}
+                </div>
+                <div className="text-sm font-black text-emerald-950 leading-tight">
+                  {w.label}
+                </div>
+                <div className="text-[11px] text-emerald-900/60 mt-0.5">
+                  {w.matches} {w.matches === 1 ? "match" : "matches"}
+                </div>
+                <div className="text-[10px] uppercase tracking-widest text-emerald-900/40 font-bold mt-2">
+                  Pick by {w.lockLabel}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-6 pb-16 w-full">
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60 mb-4">
+          How it works
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              n: 1,
+              t: "Sign in",
+              d: "Magic-link email. No passwords, no accounts to manage.",
+              tone: "navy",
+            },
+            {
+              n: 2,
+              t: "Pick all 72 group games",
+              d: "Before the tournament starts. Picks lock at kickoff of match #1.",
+              tone: "pitch",
+            },
+            {
+              n: 3,
+              t: "Come back each round",
+              d: "Bracket reveals as FIFA seeds it. Pick R32, R16, QF, SF, Final.",
+              tone: "red",
+            },
+          ].map((s) => {
+            const badge =
+              s.tone === "pitch"
+                ? "bg-emerald-700 text-white"
+                : s.tone === "navy"
+                  ? "bg-[var(--usa-navy)] text-white"
+                  : "bg-[var(--usa-red)] text-white";
+            return (
+              <div key={s.n} className="card rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-base font-black shadow-md ${badge}`}
+                  >
+                    {s.n}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-widest text-emerald-900/50 font-bold">
+                    Step {s.n}
+                  </div>
+                </div>
+                <div className="text-xl font-bold mb-2 text-emerald-950">{s.t}</div>
+                <div className="text-sm text-emerald-950/70 leading-relaxed">{s.d}</div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -277,56 +403,6 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-6 pb-24 w-full">
-        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60 mb-4">
-          How it works
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            {
-              n: 1,
-              t: "Sign in",
-              d: "Magic-link email. No passwords, no accounts to manage.",
-              tone: "navy",
-            },
-            {
-              n: 2,
-              t: "Pick all 72 group games",
-              d: "Before the tournament starts. Picks lock at kickoff of match #1.",
-              tone: "pitch",
-            },
-            {
-              n: 3,
-              t: "Come back each round",
-              d: "Bracket reveals as FIFA seeds it. Pick R32, R16, QF, SF, Final.",
-              tone: "red",
-            },
-          ].map((s) => {
-            const badge =
-              s.tone === "pitch"
-                ? "bg-emerald-700 text-white"
-                : s.tone === "navy"
-                  ? "bg-[var(--usa-navy)] text-white"
-                  : "bg-[var(--usa-red)] text-white";
-            return (
-              <div key={s.n} className="card rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-base font-black shadow-md ${badge}`}
-                  >
-                    {s.n}
-                  </div>
-                  <div className="text-[10px] uppercase tracking-widest text-emerald-900/50 font-bold">
-                    Step {s.n}
-                  </div>
-                </div>
-                <div className="text-xl font-bold mb-2 text-emerald-950">{s.t}</div>
-                <div className="text-sm text-emerald-950/70 leading-relaxed">{s.d}</div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 }
