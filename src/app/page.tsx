@@ -184,7 +184,7 @@ export default async function Home() {
                   {w.label}
                 </div>
                 <div className="text-sm text-emerald-900/70 mt-1">
-                  {w.matches} {w.matches === 1 ? "match" : "matches"}
+                  {w.matches} matches
                 </div>
                 <div className="text-xs text-emerald-950/60 mt-2 leading-relaxed">
                   {w.sub}
