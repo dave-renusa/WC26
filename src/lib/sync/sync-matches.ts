@@ -69,20 +69,34 @@ function decideWriter(pair: ResolvedPair): {
   const ev = pair.event;
   const homeScore = ev.homeScore;
   const awayScore = ev.awayScore;
-  // Map ESPN's home/away → our team_a/team_b.
+  // Map ESPN's home/away → our team_a/team_b. In populate mode we use the
+  // resolved IDs (which followed ESPN's home → team_a convention).
   const scoreA = pair.espnHomeIsOurA ? homeScore : awayScore;
   const scoreB = pair.espnHomeIsOurA ? awayScore : homeScore;
 
+  const teamAId = pair.resolvedTeamAId;
+  const teamBId = pair.resolvedTeamBId;
+  const isKnockout = pair.match.stage !== "group";
+
   let winnerId: number | null = null;
   if (homeScore != null && awayScore != null) {
-    if (homeScore > awayScore) {
-      winnerId = pair.espnHomeIsOurA ? pair.match.team_a_id! : pair.match.team_b_id!;
+    if (isKnockout) {
+      // Knockouts can end on penalty shootouts; ESPN's `score` is reg+ET only,
+      // so a 1-1 with a winner flagged is a PK result. Always defer to
+      // competitor.winner — it's set correctly for FT, AET, and PK outcomes.
+      if (ev.homeWinner) {
+        winnerId = pair.espnHomeIsOurA ? teamAId : teamBId;
+      } else if (ev.awayWinner) {
+        winnerId = pair.espnHomeIsOurA ? teamBId : teamAId;
+      }
+      // else null — only happens pre-final or on a status anomaly
+    } else if (homeScore > awayScore) {
+      winnerId = pair.espnHomeIsOurA ? teamAId : teamBId;
     } else if (awayScore > homeScore) {
-      winnerId = pair.espnHomeIsOurA ? pair.match.team_b_id! : pair.match.team_a_id!;
+      winnerId = pair.espnHomeIsOurA ? teamBId : teamAId;
     } else {
-      // Draw: in group stage we leave winner_team_id null and let scoring view
-      // award 0.5 pts via the draw rule. ESPN's `winner` flags are both false
-      // on draws so we don't need them here.
+      // Group-stage draw: leave winner_team_id null; the scoring view awards
+      // 0.5 pts via the draw rule.
       winnerId = null;
     }
   }
@@ -98,7 +112,7 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
     await Promise.all([
       supabase
         .from("matches")
-        .select("id, kickoff_at, team_a_id, team_b_id, score_a, score_b, winner_team_id"),
+        .select("id, stage, kickoff_at, team_a_id, team_b_id, score_a, score_b, winner_team_id"),
       supabase.from("teams").select("id, code"),
     ]);
   if (mErr) throw new Error(`matches read: ${mErr.message}`);
@@ -145,14 +159,25 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
   for (const pair of resolved) {
     const row = matches.find((m) => m.id === pair.match.id)!;
     const decision = decideWriter(pair);
+    const isFinal = pair.event.state === "post" && pair.event.completed;
 
-    const noChange =
-      row.score_a === decision.scoreA &&
-      row.score_b === decision.scoreB &&
-      row.winner_team_id === decision.winnerId;
+    // Build the update payload. Populate mode (knockout slots being filled
+    // from ESPN) writes team_a_id/team_b_id/kickoff_at even pre-match. Final
+    // mode adds score_a/score_b/winner_team_id. Both can apply in one pair.
+    const update: Record<string, number | string | null> = {};
+    if (pair.populateMode) {
+      update.team_a_id = pair.resolvedTeamAId;
+      update.team_b_id = pair.resolvedTeamBId;
+      update.kickoff_at = pair.event.date;
+    }
+    if (isFinal) {
+      update.score_a = decision.scoreA;
+      update.score_b = decision.scoreB;
+      update.winner_team_id = decision.winnerId;
+    }
 
-    // Not yet completed → only log, never write.
-    if (!(pair.event.state === "post" && pair.event.completed)) {
+    if (Object.keys(update).length === 0) {
+      // Nothing actionable — strict match with a non-final event, no populate.
       entries.push({
         match_id: row.id,
         status: "skipped",
@@ -178,8 +203,16 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
       continue;
     }
 
-    // Admin already set a different winner — leave it.
+    // No-change detection: every key in `update` already matches the row.
+    const noChange = Object.entries(update).every(([k, v]) => {
+      const current = (row as unknown as Record<string, unknown>)[k] ?? null;
+      return current === (v ?? null);
+    });
+
+    // Admin already set a different winner — leave it. Only relevant when
+    // we're attempting to write winner_team_id.
     if (
+      isFinal &&
       row.winner_team_id != null &&
       decision.winnerId != null &&
       row.winner_team_id !== decision.winnerId
@@ -229,11 +262,18 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
       continue;
     }
 
+    const actionLabel =
+      pair.populateMode && isFinal
+        ? "populate-teams+finalize"
+        : pair.populateMode
+          ? "populate-teams"
+          : "finalize";
+
     if (opts.dryRun) {
       entries.push({
         match_id: row.id,
         status: "planned",
-        reason: "would-update",
+        reason: `would-${actionLabel}`,
         espn_event_id: pair.event.id,
         proposed_score_a: decision.scoreA,
         proposed_score_b: decision.scoreB,
@@ -246,7 +286,7 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
         match_id: row.id,
         source: "espn",
         status: "planned",
-        reason: "would-update",
+        reason: `would-${actionLabel}`,
         dry_run: true,
         proposed_score_a: decision.scoreA,
         proposed_score_b: decision.scoreB,
@@ -261,11 +301,7 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
 
     const { error: upErr } = await supabase
       .from("matches")
-      .update({
-        score_a: decision.scoreA,
-        score_b: decision.scoreB,
-        winner_team_id: decision.winnerId,
-      })
+      .update(update)
       .eq("id", row.id);
 
     if (upErr) {
@@ -301,7 +337,7 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
     entries.push({
       match_id: row.id,
       status: "applied",
-      reason: "espn-final",
+      reason: actionLabel,
       espn_event_id: pair.event.id,
       proposed_score_a: decision.scoreA,
       proposed_score_b: decision.scoreB,
@@ -314,7 +350,7 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
       match_id: row.id,
       source: "espn",
       status: "applied",
-      reason: "espn-final",
+      reason: actionLabel,
       dry_run: false,
       proposed_score_a: decision.scoreA,
       proposed_score_b: decision.scoreB,

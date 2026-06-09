@@ -127,6 +127,38 @@ function SyncSection({
           >
             {pending ? "Running…" : "Apply sync"}
           </button>
+          <button
+            disabled={pending}
+            onClick={() => {
+              if (
+                confirm(
+                  "Open the knockout bracket?\n\n" +
+                    "This populates R32 teams from ESPN and locks all knockout picks at the first R32 kickoff. " +
+                    "Run only after the group stage has ended and ESPN has revealed the R32 matchups.",
+                )
+              ) {
+                setErr("");
+                setReport("");
+                startTransition(async () => {
+                  try {
+                    const res = await fetch("/api/admin/open-bracket", { method: "POST" });
+                    const data = await res.json();
+                    if (!res.ok) {
+                      setErr(data.error || `HTTP ${res.status}`);
+                      return;
+                    }
+                    setReport(JSON.stringify(data, null, 2));
+                    setTimeout(() => window.location.reload(), 1500);
+                  } catch (e) {
+                    setErr(e instanceof Error ? e.message : String(e));
+                  }
+                });
+              }
+            }}
+            className="px-4 py-2 rounded-lg btn-gold text-sm disabled:opacity-50"
+          >
+            {pending ? "Running…" : "Open bracket"}
+          </button>
         </div>
         {err && (
           <pre className="mt-3 text-xs text-red-700 bg-red-50 rounded p-3 overflow-auto">{err}</pre>

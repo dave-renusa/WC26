@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PicksForm } from "./picks-form";
+import { BracketPicker } from "./bracket-picker";
 import type { Team, Match } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,8 @@ export default async function PicksPage() {
 
   const [
     { data: teams },
-    { data: matches },
+    { data: groupMatches },
+    { data: knockoutMatches },
     { data: picks },
     { data: thirdPlace },
     { data: bonus },
@@ -40,25 +42,50 @@ export default async function PicksPage() {
       .select("*")
       .eq("stage", "group")
       .order("kickoff_at"),
+    supabase
+      .from("matches")
+      .select("*")
+      .neq("stage", "group")
+      .order("stage")
+      .order("bracket_slot"),
     supabase.from("picks").select("*").eq("user_id", user.id),
     supabase.from("third_place_picks").select("group_code").eq("user_id", user.id),
     supabase.from("bonus_picks").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("tournament_settings").select("*").eq("id", 1).single(),
   ]);
 
+  const allPicks = Object.fromEntries(
+    (picks ?? []).map((p) => [p.match_id as number, p.predicted_winner_team_id as number]),
+  ) as Record<number, number>;
+
+  const knockouts = (knockoutMatches ?? []) as Match[];
+  // Bracket is "ready" when at least one R32 match has both teams populated.
+  // Admin's "Open bracket" action triggers the populate, so this also acts as
+  // a flag for whether players should see the bracket section.
+  const bracketReady = knockouts.some(
+    (m) => m.stage === "r32" && m.team_a_id != null && m.team_b_id != null,
+  );
+
   return (
-    <PicksForm
-      userId={user.id}
-      teams={(teams ?? []) as Team[]}
-      matches={(matches ?? []) as Match[]}
-      initialPicks={
-        Object.fromEntries(
-          (picks ?? []).map((p) => [p.match_id as number, p.predicted_winner_team_id as number]),
-        ) as Record<number, number>
-      }
-      initialThirdPlace={(thirdPlace ?? []).map((r) => r.group_code as string)}
-      initialGoldenBoot={(bonus?.golden_boot_player as string | null) ?? ""}
-      groupStageLockAt={(settings?.group_stage_lock_at as string | null) ?? null}
-    />
+    <>
+      <PicksForm
+        userId={user.id}
+        teams={(teams ?? []) as Team[]}
+        matches={(groupMatches ?? []) as Match[]}
+        initialPicks={allPicks}
+        initialThirdPlace={(thirdPlace ?? []).map((r) => r.group_code as string)}
+        initialGoldenBoot={(bonus?.golden_boot_player as string | null) ?? ""}
+        groupStageLockAt={(settings?.group_stage_lock_at as string | null) ?? null}
+      />
+      {bracketReady && (
+        <BracketPicker
+          userId={user.id}
+          teams={(teams ?? []) as Team[]}
+          knockoutMatches={knockouts}
+          initialPicks={allPicks}
+          bracketLockAt={(settings?.r32_lock_at as string | null) ?? null}
+        />
+      )}
+    </>
   );
 }
