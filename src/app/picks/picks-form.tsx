@@ -211,6 +211,10 @@ export function PicksForm({
                 counter at the top right tells you how many are done.
               </li>
               <li>
+                <strong>Drawn group games</strong> earn{" "}
+                <strong>0.5 pts</strong> for picking either team — your team didn&apos;t lose.
+              </li>
+              <li>
                 <strong>Then scroll past the matches</strong> for two bonus picks: 8 best
                 3rd-place groups (3 pts each) and the Golden Boot scorer (15 pts).
               </li>

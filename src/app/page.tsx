@@ -139,6 +139,11 @@ export default function Home() {
             </div>
           ))}
         </div>
+        <p className="text-xs text-emerald-900/60 mt-3 px-1">
+          <strong className="text-emerald-950">Drawn group games</strong> earn{" "}
+          <strong className="text-emerald-950">0.5 pts</strong> for picking either team — your
+          team didn&apos;t lose.
+        </p>
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="card-pitch rounded-2xl p-5 flex items-center justify-between">
             <div>
