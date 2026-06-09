@@ -78,17 +78,43 @@ export default function RulesPage() {
 
       <section className="mb-10">
         <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60 mb-3">
-          How locking works
+          Two pick windows
         </h2>
         <div className="card rounded-2xl p-6 space-y-3 text-sm text-emerald-950/80 leading-relaxed">
           <p>
-            <strong>Group stage + Golden Boot + 3rd-place picks</strong> lock at kickoff of the first
-            group match on <strong>June 11, 2026</strong>. After that, no edits.
+            <strong>Window 1 — Group stage.</strong> Pick all 72 group matches, your 8 of 12
+            third-place groups, and your Golden Boot. Everything locks at kickoff of the first
+            group match on <strong>June 11, 2026</strong>.
           </p>
           <p>
-            <strong>Each knockout round</strong> reveals once the prior round is decided, and locks at
-            kickoff of the first match of that round. So even if you wreck the group stage, you can
-            re-enter the next round fresh.
+            <strong>Window 2 — The bracket.</strong> Once group stage ends, your full
+            knockout bracket opens: R32 (16), R16 (8), QF (4), SF (2), Final (1) — all 31 matches
+            picked in one sitting. Locks at kickoff of R32 match #1 on <strong>June 28, 2026</strong>.
+            No second chances after that — your bracket is your bracket.
+          </p>
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60 mb-3">
+          Strict bracket
+        </h2>
+        <div className="card-pitch rounded-2xl p-6 text-sm text-emerald-950/80 leading-relaxed space-y-3">
+          <p>
+            Your bracket cascades. Pick Brazil over Argentina in R32 → Brazil advances to your
+            R16 slot. Pick Brazil to win R16 → they advance to your QF slot. And so on through
+            the Final.
+          </p>
+          <p>
+            <strong className="text-emerald-950">If a team you advanced loses earlier than you predicted, every later pick that involved
+            that team scores 0.</strong> Pick Brazil to lift the trophy, but they go out in R32?
+            Your R16 / QF / SF / Final picks for Brazil are all 0 because Brazil isn&apos;t in those
+            matches. That&apos;s the whole point — the 13 points for the Final aren&apos;t a free
+            ride; you have to predict the path.
+          </p>
+          <p>
+            If you change an earlier pick, the picks page automatically clears any later picks
+            that no longer fit your new bracket. You re-pick from your new path.
           </p>
         </div>
       </section>
@@ -98,7 +124,7 @@ export default function RulesPage() {
           Tiebreaker
         </h2>
         <div className="card rounded-2xl p-6 text-sm text-emerald-950/80 leading-relaxed">
-          On the final pick, you also predict the <strong>total goals in the Final</strong>. Ties
+          On the Final pick, you also predict the <strong>total goals in the Final</strong>. Ties
           resolve in favor of whoever is closest. Still tied? Split the bragging rights.
         </div>
       </section>

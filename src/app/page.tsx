@@ -48,16 +48,25 @@ const HOST_FLAGS = [
   { code: "mx", name: "Mexico" },
 ];
 
-// Six pick windows across the tournament. lockBy is the first kickoff of that
-// round (UTC) — picks for the round freeze at that moment. Dates straight from
-// the FIFA 2026 published schedule.
+// Two pick windows. Groups before kickoff, then the full knockout bracket
+// (R32 → Final, all 31 matches in one sitting) once groups end.
 const PICK_WINDOWS = [
-  { id: "group", label: "Groups",      matches: 72, lockBy: "2026-06-11", lockLabel: "Jun 11" },
-  { id: "r32",   label: "R32",         matches: 16, lockBy: "2026-06-28", lockLabel: "Jun 28" },
-  { id: "r16",   label: "R16",         matches:  8, lockBy: "2026-07-04", lockLabel: "Jul 4"  },
-  { id: "qf",    label: "Quarterfinals", matches: 4, lockBy: "2026-07-09", lockLabel: "Jul 9"  },
-  { id: "sf",    label: "Semifinals",  matches:  2, lockBy: "2026-07-14", lockLabel: "Jul 14" },
-  { id: "final", label: "Final",       matches:  1, lockBy: "2026-07-19", lockLabel: "Jul 19" },
+  {
+    id: "group",
+    label: "Group Stage",
+    matches: 72,
+    lockBy: "2026-06-11",
+    lockLabel: "Jun 11",
+    sub: "Pick every group game + Golden Boot + 3rd-place card",
+  },
+  {
+    id: "bracket",
+    label: "The Bracket",
+    matches: 31,
+    lockBy: "2026-06-28",
+    lockLabel: "Jun 28",
+    sub: "R32 → R16 → QF → SF → Final, all at once. Your picks advance.",
+  },
 ] as const;
 
 function getCurrentWindowId(): string | null {
@@ -115,7 +124,8 @@ export default async function Home() {
 
         <p className="mt-6 text-lg text-emerald-950/70 max-w-2xl leading-relaxed">
           The 2026 World Cup bracket pool for people who actually watch every group game.
-          Pick round by round — blow one round, win the next.
+          Pick all 72 group matches, then fill out your full bracket once groups end —
+          R32 through the Final, all at once.
         </p>
 
         <div className="mt-10 flex flex-wrap gap-3">
@@ -134,13 +144,13 @@ export default async function Home() {
       <section className="max-w-7xl mx-auto px-6 pb-12 w-full">
         <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
           <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60">
-            Six pick windows · Bracket unlocks as the tournament resolves
+            Two pick windows · One bracket, no second chances
           </h2>
           <span className="text-xs text-emerald-900/40">
-            You&apos;ll come back {PICK_WINDOWS.length - 1} more times after groups
+            Sign up, pick, come back once
           </span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {PICK_WINDOWS.map((w, i) => {
             const isCurrent = w.id === currentWindowId;
             const isPast =
@@ -149,7 +159,7 @@ export default async function Home() {
             return (
               <div
                 key={w.id}
-                className={`relative rounded-2xl p-4 transition ${
+                className={`relative rounded-2xl p-5 transition ${
                   isCurrent
                     ? "card-gold ring-2 ring-amber-500/40"
                     : isPast
@@ -157,7 +167,7 @@ export default async function Home() {
                       : "card"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-mono text-emerald-900/40 tabular-nums">
                     {String(i + 1).padStart(2, "0")}
                   </span>
@@ -170,14 +180,17 @@ export default async function Home() {
                     <span className="text-[9px] text-emerald-900/40">✓</span>
                   )}
                 </div>
-                <div className="text-sm font-black text-emerald-950 leading-tight">
+                <div className="text-xl font-black text-emerald-950 leading-tight">
                   {w.label}
                 </div>
-                <div className="text-[11px] text-emerald-900/60 mt-0.5">
+                <div className="text-sm text-emerald-900/70 mt-1">
                   {w.matches} {w.matches === 1 ? "match" : "matches"}
                 </div>
-                <div className="text-[10px] uppercase tracking-widest text-emerald-900/40 font-bold mt-2">
-                  Pick by {w.lockLabel}
+                <div className="text-xs text-emerald-950/60 mt-2 leading-relaxed">
+                  {w.sub}
+                </div>
+                <div className="text-[10px] uppercase tracking-widest text-emerald-900/40 font-bold mt-3">
+                  Locks {w.lockLabel}
                 </div>
               </div>
             );
@@ -205,8 +218,8 @@ export default async function Home() {
             },
             {
               n: 3,
-              t: "Come back each round",
-              d: "Bracket reveals as FIFA seeds it. Pick R32, R16, QF, SF, Final.",
+              t: "Fill out your full bracket",
+              d: "Once groups end, pick all 31 knockout matches at once. Strict bracket — your R32 picks advance through R16 to the Final.",
               tone: "red",
             },
           ].map((s) => {
