@@ -1,8 +1,9 @@
 // POST /api/sync/matches
 //
-// Auth (either is sufficient):
-//   - Header  x-sync-secret: <CRON_SECRET>     (for cron / curl)
-//   - Cookie session for a profile with is_admin=true (for the admin page button)
+// Auth (any one is sufficient):
+//   - Header  Authorization: Bearer <CRON_SECRET>   (Vercel cron sends this automatically)
+//   - Header  x-sync-secret: <CRON_SECRET>          (curl / external callers)
+//   - Cookie session for a profile with is_admin=true (admin page button)
 //
 // Query params:
 //   apply=1   write changes (default is dry-run)
@@ -26,8 +27,15 @@ function parseYmd(s: string | null, fallback: Date): Date {
 
 async function isAuthorized(req: NextRequest): Promise<{ ok: boolean; via: string }> {
   const secret = process.env.CRON_SECRET;
-  const provided = req.headers.get("x-sync-secret");
-  if (secret && provided && provided === secret) return { ok: true, via: "secret" };
+  if (secret) {
+    // Vercel cron attaches Authorization: Bearer <CRON_SECRET> automatically
+    // when the project has the CRON_SECRET env var set.
+    const bearer = req.headers.get("authorization");
+    if (bearer && bearer === `Bearer ${secret}`) return { ok: true, via: "vercel-cron" };
+
+    const provided = req.headers.get("x-sync-secret");
+    if (provided && provided === secret) return { ok: true, via: "secret" };
+  }
 
   // Fall back to authenticated admin user.
   try {
