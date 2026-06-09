@@ -56,7 +56,7 @@ const PICK_WINDOWS = [
     label: "Group Stage",
     matches: 72,
     lockBy: "2026-06-11",
-    lockLabel: "Jun 11",
+    lockLabel: "Thu Jun 11 · 3pm ET",
     sub: "Pick every group game + Golden Boot + 3rd-place card",
   },
   {
@@ -64,7 +64,7 @@ const PICK_WINDOWS = [
     label: "The Bracket",
     matches: 31,
     lockBy: "2026-06-28",
-    lockLabel: "Jun 28",
+    lockLabel: "Sun Jun 28",
     sub: "R32 → R16 → QF → SF → Final, all at once. Your picks advance.",
   },
 ] as const;

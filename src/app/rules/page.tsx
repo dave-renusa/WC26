@@ -84,7 +84,7 @@ export default function RulesPage() {
           <p>
             <strong>Window 1 — Group stage.</strong> Pick all 72 group matches, your 8 of 12
             third-place groups, and your Golden Boot. Everything locks at kickoff of the first
-            group match on <strong>June 11, 2026</strong>.
+            group match — <strong>Thursday, June 11, 2026 at 3:00 PM ET</strong>.
           </p>
           <p>
             <strong>Window 2 — The bracket.</strong> Once group stage ends, your full
