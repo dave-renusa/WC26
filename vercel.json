@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/sync/matches?apply=1",
-      "schedule": "*/10 0-7,15-23 * * *"
-    }
-  ]
-}
