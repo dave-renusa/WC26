@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+:root {
+  /* Warm cream base — bright, sunlit stadium */
+  --background: #fdfaf2;
+  --background-2: #f7f1e3;
+  --foreground: #0f1f17;
+
+  /* Pitch green */
+  --pitch: #047857;
+  --pitch-deep: #064e3b;
+  --pitch-bright: #10b981;
+  --pitch-soft: #d1fae5;
+
+  /* Trophy gold */
+  --gold: #d97706;
+  --gold-bright: #f59e0b;
+  --gold-deep: #92400e;
+  --gold-soft: #fef3c7;
+
+  /* USA accents */
+  --usa-navy: #1e3a8a;
+  --usa-red: #b91c1c;
+
+  --line: rgba(15, 31, 23, 0.08);
+  --line-strong: rgba(15, 31, 23, 0.15);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-pitch: var(--pitch);
+  --color-pitch-deep: var(--pitch-deep);
+  --color-pitch-bright: var(--pitch-bright);
+  --color-pitch-soft: var(--pitch-soft);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-gold-soft: var(--gold-soft);
+  --color-usa-navy: var(--usa-navy);
+  --color-usa-red: var(--usa-red);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* Sunlit stadium gradient */
+body {
+  background:
+    radial-gradient(ellipse 60% 40% at 15% 0%, rgba(217, 119, 6, 0.10), transparent 70%),
+    radial-gradient(ellipse 70% 50% at 90% 100%, rgba(4, 120, 87, 0.12), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 50% 50%, rgba(245, 158, 11, 0.04), transparent 80%),
+    linear-gradient(180deg, var(--background) 0%, var(--background-2) 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Subtle pitch stripes */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 80px,
+    rgba(4, 120, 87, 0.035) 80px,
+    rgba(4, 120, 87, 0.035) 81px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+main, header, footer { position: relative; z-index: 1; }
+
+.card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow:
+    0 1px 2px rgba(15, 31, 23, 0.04),
+    0 4px 12px rgba(15, 31, 23, 0.04);
+}
+
+.card-pitch {
+  background: linear-gradient(180deg, #ffffff 0%, var(--pitch-soft) 200%);
+  border: 1px solid rgba(4, 120, 87, 0.2);
+  box-shadow:
+    0 1px 2px rgba(4, 120, 87, 0.05),
+    0 4px 16px rgba(4, 120, 87, 0.06);
+}
+
+.card-gold {
+  background: linear-gradient(180deg, #ffffff 0%, var(--gold-soft) 220%);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  box-shadow:
+    0 1px 2px rgba(217, 119, 6, 0.06),
+    0 4px 16px rgba(217, 119, 6, 0.08);
+}
+
+.text-gold {
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 60%, #92400e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-pitch {
+  background: linear-gradient(180deg, #10b981 0%, #047857 60%, #064e3b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.btn-gold {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+  color: #1a0f00;
+  font-weight: 700;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow:
+    0 0 0 1px rgba(146, 64, 14, 0.4) inset,
+    0 4px 14px rgba(217, 119, 6, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.45) inset;
+}
+.btn-gold:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(146, 64, 14, 0.5) inset,
+    0 6px 22px rgba(217, 119, 6, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.55) inset;
+}
+
+.btn-pitch {
+  background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+  color: #ffffff;
+  font-weight: 700;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow:
+    0 0 0 1px rgba(6, 78, 59, 0.5) inset,
+    0 4px 14px rgba(4, 120, 87, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.25) inset;
+}
+.btn-pitch:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px rgba(6, 78, 59, 0.6) inset,
+    0 6px 22px rgba(4, 120, 87, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.35) inset;
+}
+
+.pick-btn {
+  border: 1px solid var(--line);
+  background: #ffffff;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.pick-btn:hover {
+  background: var(--pitch-soft);
+  border-color: var(--pitch);
+}
+.pick-btn[data-selected="true"] {
+  background: linear-gradient(135deg, var(--gold-soft), var(--pitch-soft));
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 4px 12px rgba(217, 119, 6, 0.2);
+}
+.pick-btn[data-locked="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Patriot stripe — used as section accent */
+.stripe-usa {
+  background: linear-gradient(90deg,
+    var(--usa-navy) 0%, var(--usa-navy) 33%,
+    #ffffff 33%, #ffffff 66%,
+    var(--usa-red) 66%, var(--usa-red) 100%);
+}
