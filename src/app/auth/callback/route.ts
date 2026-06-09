@@ -19,5 +19,23 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Guarantee a profile row exists before redirecting onward, so the first
+  // pick/3rd-place/bonus insert never trips the FK constraint.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        email: user.email!,
+        display_name:
+          (user.user_metadata?.display_name as string | undefined) ??
+          user.email!.split("@")[0],
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+  }
+
   return NextResponse.redirect(`${origin}${next}`);
 }
