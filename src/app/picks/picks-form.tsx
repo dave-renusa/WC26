@@ -40,6 +40,7 @@ const GOLDEN_BOOT_CANDIDATES = [
   "Bruno Fernandes",
   "Antoine Griezmann",
   "Ousmane Dembélé",
+  "Michael Olise",
   "Romelu Lukaku",
   "Federico Valverde",
   "Darwin Núñez",
