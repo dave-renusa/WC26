@@ -8,29 +8,24 @@ const POOL_ENTRY = {
   venmoHandle: "David-DOnofrio-03",
 };
 
-// Payout structure
-//   1–10 players → top 2 at 70/30
-//   11+ players  → top 3 at 60/25/15
-// Tier breakpoint at 11 keeps the cliff at 10→11 to ~$10 — basically symbolic.
-const PAYOUT_TIERS = {
-  small: { label: "1–10 players", split: [0.7, 0.3], places: ["1st", "2nd"] as const },
-  large: { label: "11+ players", split: [0.6, 0.25, 0.15], places: ["1st", "2nd", "3rd"] as const },
+// Payout structure: top 3 at 60/25/15. The pool passed 10 players, so the
+// old small-pool tier (top 2 at 70/30) was retired.
+const PAYOUT = {
+  split: [0.6, 0.25, 0.15],
+  places: ["1st", "2nd", "3rd"] as const,
 };
 
 function computePayouts(playerCount: number): {
   pot: number;
-  tier: keyof typeof PAYOUT_TIERS;
   amounts: number[];
 } {
   const pot = playerCount * POOL_ENTRY.amount;
-  const tier: keyof typeof PAYOUT_TIERS = playerCount >= 11 ? "large" : "small";
-  const split = PAYOUT_TIERS[tier].split;
   // Floor each payout to whole dollars; the remainder rolls to 1st place so
   // the math always sums exactly to the pot — no orphan pennies.
-  const rounded = split.map((pct) => Math.floor(pot * pct));
+  const rounded = PAYOUT.split.map((pct) => Math.floor(pot * pct));
   const remainder = pot - rounded.reduce((a, b) => a + b, 0);
   rounded[0] += remainder;
-  return { pot, tier, amounts: rounded };
+  return { pot, amounts: rounded };
 }
 
 const ROUNDS = [
@@ -311,45 +306,34 @@ export default async function Home() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-3">
-          <PayoutTierCard
-            tierKey="small"
-            playerCount={playerCount}
-            sampleCounts={[5, 8, 10]}
-            isActive={payouts.tier === "small"}
-          />
-          <PayoutTierCard
-            tierKey="large"
-            playerCount={playerCount}
-            sampleCounts={[15, 25, 50]}
-            isActive={payouts.tier === "large"}
-          />
+          <PayoutTierCard playerCount={playerCount} sampleCounts={[15, 25, 50]} />
+
+          {playerCount > 0 && (
+            <div className="card-gold rounded-2xl p-5 flex flex-col">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-amber-800 font-bold">
+                  If the pool closed right now
+                </div>
+                <div className="text-sm text-emerald-950/70 mt-0.5">
+                  {playerCount} {playerCount === 1 ? "player" : "players"} × ${POOL_ENTRY.amount} = <strong className="text-emerald-950">${payouts.pot}</strong> pot
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap mt-auto pt-4">
+                {payouts.amounts.map((amt, i) => (
+                  <div key={i} className="flex-1 min-w-[80px] text-center px-4 py-2 rounded-lg bg-white/70 border border-amber-900/15">
+                    <div className="text-[10px] uppercase tracking-widest font-bold text-amber-900/70">
+                      {PAYOUT.places[i]}
+                    </div>
+                    <div className="text-xl font-black text-gold">${amt}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {playerCount > 0 && (
-          <div className="mt-3 card-gold rounded-2xl p-5 flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-amber-800 font-bold">
-                If the pool closed right now
-              </div>
-              <div className="text-sm text-emerald-950/70 mt-0.5">
-                {playerCount} {playerCount === 1 ? "player" : "players"} × ${POOL_ENTRY.amount} = <strong className="text-emerald-950">${payouts.pot}</strong> pot
-              </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {payouts.amounts.map((amt, i) => (
-                <div key={i} className="text-center px-4 py-2 rounded-lg bg-white/70 border border-amber-900/15">
-                  <div className="text-[10px] uppercase tracking-widest font-bold text-amber-900/70">
-                    {PAYOUT_TIERS[payouts.tier].places[i]}
-                  </div>
-                  <div className="text-xl font-black text-gold">${amt}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <p className="text-xs text-emerald-900/60 mt-3 px-1">
-          Tiers switch at 11 players. Pot is paid out only to players who have venmo&apos;d the buy-in to{" "}
+          Pot is paid out only to players who have venmo&apos;d the buy-in to{" "}
           <strong className="text-emerald-950">@{POOL_ENTRY.venmoHandle}</strong> before kickoff of match #1.
         </p>
       </section>
@@ -421,44 +405,26 @@ export default async function Home() {
 }
 
 function PayoutTierCard({
-  tierKey,
   playerCount,
   sampleCounts,
-  isActive,
 }: {
-  tierKey: keyof typeof PAYOUT_TIERS;
   playerCount: number;
   sampleCounts: number[];
-  isActive: boolean;
 }) {
-  const tier = PAYOUT_TIERS[tierKey];
   return (
-    <div
-      className={`card rounded-2xl p-5 ${
-        isActive ? "ring-2 ring-emerald-700/50 shadow-lg shadow-emerald-700/10" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-emerald-900/50 font-bold">
-            {tier.label}
-          </div>
-          <div className="text-lg font-bold text-emerald-950 mt-0.5">
-            {tier.places.length === 2 ? "Top 2 pay" : "Top 3 pay"}
-          </div>
+    <div className="card rounded-2xl p-5 ring-2 ring-emerald-700/50 shadow-lg shadow-emerald-700/10">
+      <div className="mb-3">
+        <div className="text-[10px] uppercase tracking-widest text-emerald-900/50 font-bold">
+          Payout structure
         </div>
-        {isActive && (
-          <span className="text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded bg-emerald-700 text-white">
-            Current tier
-          </span>
-        )}
+        <div className="text-lg font-bold text-emerald-950 mt-0.5">Top 3 pay</div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-3">
-        {tier.split.map((pct, i) => (
+        {PAYOUT.split.map((pct, i) => (
           <div key={i} className="flex-1 min-w-[80px] px-3 py-2 rounded-lg bg-emerald-50/60 border border-emerald-900/10 text-center">
             <div className="text-[10px] uppercase tracking-widest font-bold text-emerald-900/50">
-              {tier.places[i]}
+              {PAYOUT.places[i]}
             </div>
             <div className="text-2xl font-black text-pitch leading-tight">
               {Math.round(pct * 100)}%
@@ -476,7 +442,7 @@ function PayoutTierCard({
             const sample = {
               pot: count * POOL_ENTRY.amount,
               amounts: (() => {
-                const split = tier.split;
+                const split = PAYOUT.split;
                 const rounded = split.map((pct) => Math.floor(count * POOL_ENTRY.amount * pct));
                 const remainder = count * POOL_ENTRY.amount - rounded.reduce((a, b) => a + b, 0);
                 rounded[0] += remainder;
