@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Team, Match } from "@/lib/types";
 
@@ -81,8 +81,33 @@ export function PicksForm({
   const [savedFlash, setSavedFlash] = useState<number | null>(null);
   const [, startTransition] = useTransition();
 
+  // Golden Boot autocomplete state (replaces flaky native <datalist>)
+  const [gbOpen, setGbOpen] = useState(false);
+  const [gbHighlight, setGbHighlight] = useState(0);
+  const gbRef = useRef<HTMLDivElement>(null);
+
   const groupStageLocked =
     !!groupStageLockAt && new Date(groupStageLockAt).getTime() <= Date.now();
+
+  // Strip accents + lowercase so "mbappe" matches "Mbappé"
+  const gbNormalize = (s: string) =>
+    s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+
+  const gbFiltered = useMemo(() => {
+    const q = gbNormalize(goldenBoot);
+    if (!q) return GOLDEN_BOOT_CANDIDATES;
+    return GOLDEN_BOOT_CANDIDATES.filter((n) => gbNormalize(n).includes(q));
+  }, [goldenBoot]);
+
+  // Close the dropdown on any outside click
+  useEffect(() => {
+    if (!gbOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (gbRef.current && !gbRef.current.contains(e.target as Node)) setGbOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [gbOpen]);
 
   const teamsById = useMemo(() => {
     const m = new Map<number, Team>();
@@ -185,6 +210,27 @@ export function PicksForm({
           { onConflict: "user_id" },
         );
     });
+  }
+
+  function selectGoldenBoot(name: string) {
+    saveGoldenBoot(name);
+    setGbOpen(false);
+  }
+
+  function onGoldenBootKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!gbOpen) setGbOpen(true);
+      setGbHighlight((h) => Math.min(h + 1, gbFiltered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setGbHighlight((h) => Math.max(h - 1, 0));
+    } else if (e.key === "Enter" && gbOpen && gbFiltered[gbHighlight]) {
+      e.preventDefault();
+      selectGoldenBoot(gbFiltered[gbHighlight]);
+    } else if (e.key === "Escape") {
+      setGbOpen(false);
+    }
   }
 
   return (
@@ -418,20 +464,53 @@ export function PicksForm({
               The Golden Boot is awarded to the player who scores the most goals across the
               entire tournament. Pick who you think lifts it.
             </p>
-            <input
-              type="text"
-              value={goldenBoot}
-              onChange={(e) => saveGoldenBoot(e.target.value)}
-              disabled={groupStageLocked}
-              list="golden-boot-candidates"
-              placeholder="e.g. Erling Haaland"
-              className="w-full px-3 py-2.5 rounded-lg border border-amber-700/20 bg-white focus:outline-none focus:ring-2 focus:ring-amber-600/40 focus:border-amber-600 text-emerald-950 disabled:opacity-60"
-            />
-            <datalist id="golden-boot-candidates">
-              {GOLDEN_BOOT_CANDIDATES.map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
+            <div className="relative" ref={gbRef}>
+              <input
+                type="text"
+                value={goldenBoot}
+                onChange={(e) => {
+                  saveGoldenBoot(e.target.value);
+                  setGbOpen(true);
+                  setGbHighlight(0);
+                }}
+                onFocus={() => setGbOpen(true)}
+                onKeyDown={onGoldenBootKey}
+                disabled={groupStageLocked}
+                autoComplete="off"
+                role="combobox"
+                aria-expanded={gbOpen}
+                aria-controls="golden-boot-listbox"
+                placeholder="e.g. Erling Haaland"
+                className="w-full px-3 py-2.5 rounded-lg border border-amber-700/20 bg-white focus:outline-none focus:ring-2 focus:ring-amber-600/40 focus:border-amber-600 text-emerald-950 disabled:opacity-60"
+              />
+              {gbOpen && !groupStageLocked && gbFiltered.length > 0 && (
+                <ul
+                  id="golden-boot-listbox"
+                  role="listbox"
+                  className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-amber-700/20 bg-white shadow-lg"
+                >
+                  {gbFiltered.map((name, i) => (
+                    <li
+                      key={name}
+                      role="option"
+                      aria-selected={i === gbHighlight}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectGoldenBoot(name);
+                      }}
+                      onMouseEnter={() => setGbHighlight(i)}
+                      className={`px-3 py-2 text-sm cursor-pointer ${
+                        i === gbHighlight
+                          ? "bg-amber-100 text-emerald-950"
+                          : "text-emerald-900/80"
+                      }`}
+                    >
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
             <p className="mt-2 text-[11px] text-amber-900/70 leading-relaxed">
               <strong className="text-emerald-950">Tip:</strong> start typing and pick from
               the dropdown for a clean match. Capitalization and accent marks are forgiven,
