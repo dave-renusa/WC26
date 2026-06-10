@@ -137,6 +137,57 @@ export default async function Home() {
       </section>
 
       <section className="max-w-7xl mx-auto px-6 pb-12 w-full">
+        <div className="card-pitch rounded-2xl p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-6 items-center">
+          <div>
+            <div className="text-[10px] uppercase tracking-widest text-emerald-800 font-bold mb-2">
+              Pool Entry · Venmo
+            </div>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-5xl font-black text-emerald-950">${POOL_ENTRY.amount}</span>
+              <span className="text-sm text-emerald-900/60 font-medium">per player</span>
+            </div>
+            <p className="text-sm text-emerald-950/70 leading-relaxed mb-4 max-w-md">
+              Buy in via Venmo to <strong>@{POOL_ENTRY.venmoHandle}</strong>. Memo your display name
+              so I can match payment to picks. Pool closes at kickoff of match #1.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`https://venmo.com/u/${POOL_ENTRY.venmoHandle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg btn-pitch text-sm"
+              >
+                Pay ${POOL_ENTRY.amount} on Venmo →
+              </a>
+              <a
+                href={`https://venmo.com/u/${POOL_ENTRY.venmoHandle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-emerald-900/80 hover:text-emerald-950"
+              >
+                @{POOL_ENTRY.venmoHandle}
+              </a>
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="bg-white rounded-xl p-2 shadow-md border border-emerald-900/10">
+              {/* Drop your Venmo QR at public/venmo-qr.png. Hidden via onError fallback. */}
+              <img
+                src="/venmo-qr.png"
+                alt="Venmo QR — David D'Onofrio"
+                width={160}
+                height={160}
+                className="block"
+              />
+            </div>
+            <div className="text-[10px] uppercase tracking-widest text-emerald-900/50 font-bold">
+              Scan to pay
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-6 pb-12 w-full">
         <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
           <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60">
             Two pick windows · One bracket, no second chances
@@ -241,57 +292,6 @@ export default async function Home() {
               </div>
             );
           })}
-        </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-6 pb-16 w-full">
-        <div className="card-pitch rounded-2xl p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-6 items-center">
-          <div>
-            <div className="text-[10px] uppercase tracking-widest text-emerald-800 font-bold mb-2">
-              Pool Entry · Venmo
-            </div>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-5xl font-black text-emerald-950">${POOL_ENTRY.amount}</span>
-              <span className="text-sm text-emerald-900/60 font-medium">per player</span>
-            </div>
-            <p className="text-sm text-emerald-950/70 leading-relaxed mb-4 max-w-md">
-              Buy in via Venmo to <strong>@{POOL_ENTRY.venmoHandle}</strong>. Memo your display name
-              so I can match payment to picks. Pool closes at kickoff of match #1.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <a
-                href={`https://venmo.com/u/${POOL_ENTRY.venmoHandle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg btn-pitch text-sm"
-              >
-                Pay ${POOL_ENTRY.amount} on Venmo →
-              </a>
-              <a
-                href={`https://venmo.com/u/${POOL_ENTRY.venmoHandle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-emerald-900/80 hover:text-emerald-950"
-              >
-                @{POOL_ENTRY.venmoHandle}
-              </a>
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <div className="bg-white rounded-xl p-2 shadow-md border border-emerald-900/10">
-              {/* Drop your Venmo QR at public/venmo-qr.png. Hidden via onError fallback. */}
-              <img
-                src="/venmo-qr.png"
-                alt="Venmo QR — David D'Onofrio"
-                width={160}
-                height={160}
-                className="block"
-              />
-            </div>
-            <div className="text-[10px] uppercase tracking-widest text-emerald-900/50 font-bold">
-              Scan to pay
-            </div>
-          </div>
         </div>
       </section>
 
