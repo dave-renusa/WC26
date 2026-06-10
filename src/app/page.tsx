@@ -112,10 +112,19 @@ export default async function Home() {
           </span>
         </div>
 
-        <h1 className="text-5xl sm:text-7xl font-black tracking-tighter leading-[0.95] max-w-4xl">
-          <span className="block text-emerald-950">Pick every match.</span>
-          <span className="block text-gold">Lift the trophy.</span>
-        </h1>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-10">
+          <h1 className="text-5xl sm:text-7xl font-black tracking-tighter leading-[0.95]">
+            <span className="block text-emerald-950">Pick every match.</span>
+            <span className="block text-gold">Lift the trophy.</span>
+          </h1>
+          <img
+            src="/wctroph-transparent.png"
+            alt="2026 FIFA World Cup — USA · Canada · Mexico"
+            width={419}
+            height={520}
+            className="h-40 sm:h-44 lg:h-52 w-auto shrink-0 self-center sm:self-auto drop-shadow-sm"
+          />
+        </div>
 
         <p className="mt-6 text-lg text-emerald-950/70 max-w-2xl leading-relaxed">
           The 2026 World Cup bracket pool for people who actually watch every group game.
