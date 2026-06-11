@@ -77,20 +77,19 @@ export default async function LeaderboardPage() {
         </div>
       ) : (
         <div className="mt-8 card rounded-2xl overflow-hidden">
-          <div className="grid grid-cols-[auto_1fr_repeat(5,4rem)] gap-x-4 px-5 py-3 text-[10px] uppercase tracking-widest font-bold text-emerald-900/50 border-b border-emerald-900/10">
+          <div className="grid grid-cols-[auto_1fr_repeat(4,4rem)] gap-x-4 px-5 py-3 text-[10px] uppercase tracking-widest font-bold text-emerald-900/50 border-b border-emerald-900/10">
             <span className="w-7">#</span>
             <span>Player</span>
             <span className="text-right">Matches</span>
             <span className="text-right">3rd-pl</span>
             <span className="text-right">Bonus</span>
             <span className="text-right">Total</span>
-            <span className="text-right">TB</span>
           </div>
           {leaderboard.map((row, i) => {
             const userRounds = byUser.get(row.user_id);
             return (
               <details key={row.user_id} className="border-b border-emerald-900/5 last:border-b-0 group">
-                <summary className="grid grid-cols-[auto_1fr_repeat(5,4rem)] gap-x-4 items-center px-5 py-3 cursor-pointer hover:bg-emerald-50/50 list-none">
+                <summary className="grid grid-cols-[auto_1fr_repeat(4,4rem)] gap-x-4 items-center px-5 py-3 cursor-pointer hover:bg-emerald-50/50 list-none">
                   <span
                     className={`text-sm font-black w-7 ${
                       i === 0
@@ -119,9 +118,6 @@ export default async function LeaderboardPage() {
                   <span className="text-right text-base font-black text-emerald-950 tabular-nums">
                     {fmtPoints(row.total_points)}
                   </span>
-                  <span className="text-right text-xs text-emerald-900/40 tabular-nums">
-                    {row.tiebreaker_distance == null ? "—" : `±${row.tiebreaker_distance}`}
-                  </span>
                 </summary>
                 <div className="px-5 pb-4 grid grid-cols-2 sm:grid-cols-6 gap-2 bg-emerald-50/30">
                   {STAGE_ORDER.map((stage) => {
@@ -148,9 +144,6 @@ export default async function LeaderboardPage() {
         </div>
       )}
 
-      <p className="text-xs text-emerald-900/50 mt-4 px-1">
-        TB = tiebreaker distance from predicted total goals in the final. Lower wins ties.
-      </p>
     </div>
   );
 }
