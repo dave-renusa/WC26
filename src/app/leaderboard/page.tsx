@@ -77,8 +77,8 @@ export default async function LeaderboardPage() {
         </div>
       ) : (
         <div className="mt-8 card rounded-2xl overflow-hidden">
-          <div className="grid grid-cols-[auto_1fr_repeat(4,auto)_auto] gap-x-4 px-5 py-3 text-[10px] uppercase tracking-widest font-bold text-emerald-900/50 border-b border-emerald-900/10">
-            <span>#</span>
+          <div className="grid grid-cols-[auto_1fr_repeat(5,4rem)] gap-x-4 px-5 py-3 text-[10px] uppercase tracking-widest font-bold text-emerald-900/50 border-b border-emerald-900/10">
+            <span className="w-7">#</span>
             <span>Player</span>
             <span className="text-right">Matches</span>
             <span className="text-right">3rd-pl</span>
@@ -90,7 +90,7 @@ export default async function LeaderboardPage() {
             const userRounds = byUser.get(row.user_id);
             return (
               <details key={row.user_id} className="border-b border-emerald-900/5 last:border-b-0 group">
-                <summary className="grid grid-cols-[auto_1fr_repeat(4,auto)_auto] gap-x-4 items-center px-5 py-3 cursor-pointer hover:bg-emerald-50/50 list-none">
+                <summary className="grid grid-cols-[auto_1fr_repeat(5,4rem)] gap-x-4 items-center px-5 py-3 cursor-pointer hover:bg-emerald-50/50 list-none">
                   <span
                     className={`text-sm font-black w-7 ${
                       i === 0
