@@ -58,6 +58,20 @@ export default async function PicksPage() {
     (picks ?? []).map((p) => [p.match_id as number, p.predicted_winner_team_id as number]),
   ) as Record<number, number>;
 
+  const groupMatchList = (groupMatches ?? []) as Match[];
+
+  // 3rd-place and Golden Boot picks lock at the tournament's first kickoff.
+  // Derive it from the actual match data (rather than a settings column that
+  // may never have been populated) so the lock is always correct.
+  const firstKickoff = groupMatchList
+    .map((m) => m.kickoff_at)
+    .filter((k): k is string => !!k)
+    .reduce<string | null>(
+      (min, k) =>
+        min == null || new Date(k).getTime() < new Date(min).getTime() ? k : min,
+      null,
+    );
+
   const knockouts = (knockoutMatches ?? []) as Match[];
   // Bracket is "ready" when at least one R32 match has both teams populated.
   // Admin's "Open bracket" action triggers the populate, so this also acts as
@@ -71,11 +85,11 @@ export default async function PicksPage() {
       <PicksForm
         userId={user.id}
         teams={(teams ?? []) as Team[]}
-        matches={(groupMatches ?? []) as Match[]}
+        matches={groupMatchList}
         initialPicks={allPicks}
         initialThirdPlace={(thirdPlace ?? []).map((r) => r.group_code as string)}
         initialGoldenBoot={(bonus?.golden_boot_player as string | null) ?? ""}
-        groupStageLockAt={(settings?.group_stage_lock_at as string | null) ?? null}
+        bonusLockAt={firstKickoff}
       />
       {bracketReady && (
         <BracketPicker

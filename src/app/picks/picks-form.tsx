@@ -11,7 +11,9 @@ type Props = {
   initialPicks: Record<number, number>;
   initialThirdPlace: string[];
   initialGoldenBoot: string;
-  groupStageLockAt: string | null;
+  // When the bonus picks (3rd place + Golden Boot) lock. This is the
+  // tournament's first kickoff. Group game picks lock per-match instead.
+  bonusLockAt: string | null;
 };
 
 const GROUPS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"] as const;
@@ -72,7 +74,7 @@ export function PicksForm({
   initialPicks,
   initialThirdPlace,
   initialGoldenBoot,
-  groupStageLockAt,
+  bonusLockAt,
 }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [picks, setPicks] = useState<Record<number, number>>(initialPicks);
@@ -86,8 +88,18 @@ export function PicksForm({
   const [gbHighlight, setGbHighlight] = useState(0);
   const gbRef = useRef<HTMLDivElement>(null);
 
-  const groupStageLocked =
-    !!groupStageLockAt && new Date(groupStageLockAt).getTime() <= Date.now();
+  // A live clock so locks flip on as time passes without a page refresh.
+  // Group games lock at their own kickoff, so this matters more than it did
+  // under the old single all-at-once lock.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // 3rd place + Golden Boot lock together at the first kickoff and can't be
+  // changed after. Group game picks are NOT covered by this — see isMatchLocked.
+  const bonusLocked = !!bonusLockAt && new Date(bonusLockAt).getTime() <= now;
 
   // Strip accents + lowercase so "mbappe" matches "Mbappé"
   const gbNormalize = (s: string) =>
@@ -133,9 +145,8 @@ export function PicksForm({
   const thirdPlaceCount = thirdPlace.size;
 
   function isMatchLocked(match: Match): boolean {
-    if (groupStageLocked) return true;
     if (!match.kickoff_at) return false;
-    return new Date(match.kickoff_at).getTime() <= Date.now();
+    return new Date(match.kickoff_at).getTime() <= now;
   }
 
   async function selectWinner(matchId: number, teamId: number) {
@@ -240,8 +251,10 @@ export function PicksForm({
           <h1 className="text-4xl font-black tracking-tighter text-emerald-950">My Picks</h1>
           <p className="mt-1 text-sm text-emerald-950/60">
             Click a team to pick the winner. Saves on click.
-            {groupStageLocked && (
-              <span className="ml-2 text-red-700 font-semibold">🔒 Group stage locked</span>
+            {bonusLocked && (
+              <span className="ml-2 text-red-700 font-semibold">
+                🔒 Bonus picks locked
+              </span>
             )}
           </p>
         </div>
@@ -301,11 +314,15 @@ export function PicksForm({
                 3rd-place groups (3 pts each) and the Golden Boot scorer (15 pts).
               </li>
               <li>
-                <strong>Everything locks at the first kickoff</strong>{" "}
+                <strong>Each group game locks at its own kickoff.</strong> You can change
+                a winner pick right up until that match starts — after kickoff it&apos;s frozen.
+              </li>
+              <li>
+                <strong>3rd-place and Golden Boot picks lock at the first kickoff</strong>{" "}
                 <span className="text-emerald-800 font-semibold">
                   (Thursday, June 11 · 3:00 PM ET)
                 </span>
-                . No edits after that.
+                . No edits to those after that.
               </li>
             </ul>
           </div>
@@ -435,7 +452,7 @@ export function PicksForm({
                     key={g}
                     type="button"
                     onClick={() => toggleThirdPlace(g)}
-                    disabled={groupStageLocked}
+                    disabled={bonusLocked}
                     className={`py-2 rounded-lg font-black text-sm border transition disabled:opacity-50 disabled:cursor-not-allowed ${
                       on
                         ? "bg-emerald-700 text-white border-emerald-800 shadow-md"
@@ -475,7 +492,7 @@ export function PicksForm({
                 }}
                 onFocus={() => setGbOpen(true)}
                 onKeyDown={onGoldenBootKey}
-                disabled={groupStageLocked}
+                disabled={bonusLocked}
                 autoComplete="off"
                 role="combobox"
                 aria-expanded={gbOpen}
@@ -483,7 +500,7 @@ export function PicksForm({
                 placeholder="e.g. Erling Haaland"
                 className="w-full px-3 py-2.5 rounded-lg border border-amber-700/20 bg-white focus:outline-none focus:ring-2 focus:ring-amber-600/40 focus:border-amber-600 text-emerald-950 disabled:opacity-60"
               />
-              {gbOpen && !groupStageLocked && gbFiltered.length > 0 && (
+              {gbOpen && !bonusLocked && gbFiltered.length > 0 && (
                 <ul
                   id="golden-boot-listbox"
                   role="listbox"
