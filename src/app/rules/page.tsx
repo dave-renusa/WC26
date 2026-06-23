@@ -1,6 +1,6 @@
 const ROUNDS: { label: string; pts: number; games: number }[] = [
   { label: "Group Stage", pts: 1, games: 72 },
-  { label: "Round of 32", pts: 2, games: 16 },
+  { label: "Round of 32", pts: 1, games: 16 },
   { label: "Round of 16", pts: 3, games: 8 },
   { label: "Quarterfinals", pts: 5, games: 4 },
   { label: "Semifinals", pts: 8, games: 2 },
@@ -48,6 +48,18 @@ export default function RulesPage() {
               <span className="text-xs text-emerald-950/50 ml-1">pts each</span>
             </div>
           </div>
+          <div className="flex items-baseline justify-between px-5 py-3.5 bg-emerald-50/50">
+            <div>
+              <div className="font-semibold text-emerald-950">3rd-place upset win</div>
+              <div className="text-xs text-emerald-950/50">
+                Each knockout game you correctly pick a 3rd-place qualifier to win
+              </div>
+            </div>
+            <div>
+              <span className="text-3xl font-black text-pitch">5</span>
+              <span className="text-xs text-emerald-950/50 ml-1">pts each</span>
+            </div>
+          </div>
           <div className="flex items-baseline justify-between px-5 py-3.5 bg-amber-50/50">
             <div>
               <div className="font-semibold text-emerald-950">Golden Boot bonus</div>
@@ -60,7 +72,9 @@ export default function RulesPage() {
           </div>
         </div>
         <p className="text-xs text-emerald-950/50 mt-3">
-          Max possible score: <strong className="text-emerald-950">216 pts</strong>.
+          Base max (every pick right): <strong className="text-emerald-950">200 pts</strong> —
+          plus <strong className="text-emerald-950">+5</strong> for every knockout game a
+          3rd-place qualifier you backed pulls off.
         </p>
       </section>
 
@@ -89,7 +103,8 @@ export default function RulesPage() {
           <p>
             <strong>Window 2 — The bracket.</strong> Once group stage ends, your full
             knockout bracket opens: R32 (16), R16 (8), QF (4), SF (2), Final (1) — all 31 matches
-            picked in one sitting. Locks at kickoff of R32 match #1 on <strong>June 28, 2026</strong>.
+            picked in one sitting. You have until kickoff of R32 match #1 —{" "}
+            <strong>Sunday, June 28, 2026 at 12:00 PM ET</strong> — to fill out the entire bracket.
             No second chances after that — your bracket is your bracket.
           </p>
         </div>
@@ -115,6 +130,25 @@ export default function RulesPage() {
           <p>
             If you change an earlier pick, the picks page automatically clears any later picks
             that no longer fit your new bracket. You re-pick from your new path.
+          </p>
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60 mb-3">
+          3rd-place upset bonus
+        </h2>
+        <div className="card-pitch rounded-2xl p-6 text-sm text-emerald-950/80 leading-relaxed space-y-3">
+          <p>
+            Eight of the twelve 3rd-place group finishers sneak into the Round of 32. They&apos;re
+            the underdogs — so back one to win a knockout game and you bank an extra{" "}
+            <strong className="text-emerald-950">+5 points</strong> on top of the round&apos;s
+            points, <em>every</em> time it happens. Pick a 3rd-place team to win in R32 and again
+            in R16? That&apos;s +5 each — it stacks all the way up.
+          </p>
+          <p>
+            You don&apos;t flag anything — group finishes are figured out automatically from the
+            final group tables, so the bonus just lands when your underdog delivers.
           </p>
         </div>
       </section>

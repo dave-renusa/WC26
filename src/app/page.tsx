@@ -30,7 +30,7 @@ function computePayouts(playerCount: number): {
 
 const ROUNDS = [
   { label: "Group Stage", points: 1, games: 72 },
-  { label: "Round of 32", points: 2, games: 16 },
+  { label: "Round of 32", points: 1, games: 16 },
   { label: "Round of 16", points: 3, games: 8 },
   { label: "Quarterfinals", points: 5, games: 4 },
   { label: "Semifinals", points: 8, games: 2 },
@@ -59,7 +59,7 @@ const PICK_WINDOWS = [
     label: "The Bracket",
     matches: 31,
     lockBy: "2026-06-28",
-    lockLabel: "Sun Jun 28",
+    lockLabel: "Sun Jun 28 · 12pm ET",
     sub: "R32 → R16 → QF → SF → Final, all at once. Your picks advance.",
   },
 ] as const;
@@ -352,7 +352,7 @@ export default async function Home() {
           <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60">
             Scoring · Every round raises the stakes
           </h2>
-          <span className="text-xs text-emerald-900/40">216 pts max</span>
+          <span className="text-xs text-emerald-900/40">200+ pts on the line</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {ROUNDS.map((r) => (
@@ -375,7 +375,7 @@ export default async function Home() {
           <strong className="text-emerald-950">0.5 pts</strong> for picking either team — your
           team didn&apos;t lose.
         </p>
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="card-pitch rounded-2xl p-5 flex items-center justify-between">
             <div>
               <div className="text-[10px] uppercase tracking-widest text-emerald-800 font-bold">
@@ -385,6 +385,16 @@ export default async function Home() {
               <div className="text-xs text-emerald-900/60 mt-0.5">Pick 8 of 12 groups whose 3rd-placer advances</div>
             </div>
             <div className="text-3xl font-black text-pitch">+3</div>
+          </div>
+          <div className="card rounded-2xl p-5 flex items-center justify-between border-l-4 !border-l-emerald-600">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-emerald-800 font-bold">
+                Knockout bonus
+              </div>
+              <div className="text-lg font-bold mt-1 text-emerald-950">3rd-place upset win</div>
+              <div className="text-xs text-emerald-900/60 mt-0.5">Each knockout game you pick a 3rd-place team to win</div>
+            </div>
+            <div className="text-3xl font-black text-pitch">+5</div>
           </div>
           <div className="card-gold rounded-2xl p-5 flex items-center justify-between">
             <div>

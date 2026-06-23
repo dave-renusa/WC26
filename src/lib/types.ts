@@ -2,7 +2,7 @@ export type Stage = "group" | "r32" | "r16" | "qf" | "sf" | "final";
 
 export const STAGE_POINTS: Record<Stage, number> = {
   group: 1,
-  r32: 2,
+  r32: 1,
   r16: 3,
   qf: 5,
   sf: 8,
@@ -11,6 +11,9 @@ export const STAGE_POINTS: Record<Stage, number> = {
 
 export const THIRD_PLACE_POINTS = 3;
 export const GOLDEN_BOOT_POINTS = 15;
+// +5 each time a player correctly picks a 3rd-place group qualifier to win a
+// knockout game. Awarded automatically from computed group standings.
+export const THIRD_PLACE_WINNER_BONUS = 5;
 
 export const STAGE_LABEL: Record<Stage, string> = {
   group: "Group Stage",

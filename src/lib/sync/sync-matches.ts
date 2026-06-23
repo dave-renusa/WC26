@@ -103,6 +103,45 @@ function decideWriter(pair: ResolvedPair): {
   return { scoreA, scoreB, winnerId };
 }
 
+// Once ESPN has populated the R32 teams, set every knockout lock time to the
+// first R32 kickoff so the whole bracket opens for picks and freezes at that
+// moment. No-op once r32_lock_at is already set (idempotent). Mirrors the
+// manual /api/admin/open-bracket action so the bracket opens hands-free.
+async function maybeAutoOpenBracket(supabase: SupabaseClient): Promise<void> {
+  const { data: settings } = await supabase
+    .from("tournament_settings")
+    .select("r32_lock_at")
+    .eq("id", 1)
+    .single();
+  if (settings?.r32_lock_at) return; // already opened
+
+  const { data: r32 } = await supabase
+    .from("matches")
+    .select("kickoff_at, team_a_id, team_b_id")
+    .eq("stage", "r32")
+    .order("kickoff_at", { ascending: true });
+
+  const rows = r32 ?? [];
+  const ready = rows.some((m) => m.team_a_id != null && m.team_b_id != null);
+  if (!ready) return; // bracket not populated yet
+
+  // Query is ordered ascending, so the first non-null kickoff is the earliest.
+  const firstKickoff =
+    rows.map((m) => m.kickoff_at as string | null).find((k) => !!k) ??
+    "2026-06-28T16:00:00+00:00";
+
+  await supabase
+    .from("tournament_settings")
+    .update({
+      r32_lock_at: firstKickoff,
+      r16_lock_at: firstKickoff,
+      qf_lock_at: firstKickoff,
+      sf_lock_at: firstKickoff,
+      final_lock_at: firstKickoff,
+    })
+    .eq("id", 1);
+}
+
 export async function runSync(opts: SyncOptions): Promise<SyncReport> {
   const startedAt = new Date().toISOString();
   const supabase = makeServiceClient();
@@ -369,6 +408,22 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
         match_id: null,
         status: "error",
         reason: `audit log write failed: ${logErr.message}`,
+      });
+    }
+  }
+
+  // Fully auto-open the bracket: the first time an applied sync leaves any R32
+  // match with both teams populated, lock the whole knockout bracket at the
+  // first R32 kickoff. One-time transition (skips if locks already set), so
+  // it's safe to evaluate on every cron pass.
+  if (!opts.dryRun) {
+    try {
+      await maybeAutoOpenBracket(supabase);
+    } catch (err) {
+      entries.push({
+        match_id: null,
+        status: "error",
+        reason: `auto-open check failed: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
   }

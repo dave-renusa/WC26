@@ -97,6 +97,7 @@ export default async function PicksPage() {
           teams={(teams ?? []) as Team[]}
           knockoutMatches={knockouts}
           initialPicks={allPicks}
+          initialFinalTotalGoals={(bonus?.predicted_final_total_goals as number | null) ?? null}
           bracketLockAt={(settings?.r32_lock_at as string | null) ?? null}
         />
       )}

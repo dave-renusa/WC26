@@ -9,6 +9,7 @@ interface Props {
   teams: Team[];
   knockoutMatches: Match[];
   initialPicks: Record<number, number>;
+  initialFinalTotalGoals: number | null;
   bracketLockAt: string | null;
 }
 
@@ -50,6 +51,12 @@ export function BracketPicker(props: Props) {
   const [pendingMatch, setPendingMatch] = useState<number | null>(null);
   const [errMsg, setErrMsg] = useState<string>("");
   const [, startTransition] = useTransition();
+
+  // Tiebreaker: predicted total goals in the Final. Stored on bonus_picks.
+  const [finalGoals, setFinalGoals] = useState<string>(
+    props.initialFinalTotalGoals == null ? "" : String(props.initialFinalTotalGoals),
+  );
+  const [goalsSaved, setGoalsSaved] = useState(false);
 
   const isLocked = useMemo(() => {
     if (!props.bracketLockAt) return false;
@@ -163,6 +170,26 @@ export function BracketPicker(props: Props) {
     });
   }
 
+  function saveFinalGoals(raw: string) {
+    // Keep only digits; empty clears the prediction.
+    const cleaned = raw.replace(/[^0-9]/g, "");
+    setFinalGoals(cleaned);
+    setGoalsSaved(false);
+    if (isLocked) return;
+    const value = cleaned === "" ? null : Number(cleaned);
+    startTransition(async () => {
+      const { error } = await supabase.from("bonus_picks").upsert(
+        { user_id: props.userId, predicted_final_total_goals: value },
+        { onConflict: "user_id" },
+      );
+      if (error) {
+        setErrMsg(`Tiebreaker save failed: ${error.message}`);
+        return;
+      }
+      setGoalsSaved(true);
+    });
+  }
+
   const totalPicked = useMemo(
     () =>
       props.knockoutMatches.filter((m) => picks[m.id] != null).length,
@@ -239,6 +266,34 @@ export function BracketPicker(props: Props) {
             </div>
           );
         })}
+      </div>
+
+      {/* Tiebreaker — predicted total goals in the Final */}
+      <div className="card-gold rounded-2xl p-5 mt-6 max-w-md">
+        <div className="text-[10px] uppercase tracking-widest text-amber-800 font-bold mb-1">
+          Tiebreaker
+        </div>
+        <div className="text-lg font-bold text-emerald-950 mb-1">Total goals in the Final</div>
+        <p className="text-xs text-emerald-950/60 mb-3">
+          Combined goals by both teams in the Final (regulation + extra time). If players
+          finish level on points, closest guess wins.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min="0"
+            inputMode="numeric"
+            value={finalGoals}
+            onChange={(e) => saveFinalGoals(e.target.value)}
+            disabled={isLocked}
+            placeholder="e.g. 3"
+            className="w-28 text-sm px-3 py-2.5 rounded-lg border border-amber-700/20 bg-white focus:outline-none focus:ring-2 focus:ring-amber-600/40 disabled:opacity-60 tabular-nums"
+          />
+          {goalsSaved && !isLocked && (
+            <span className="text-xs font-bold text-emerald-700">Saved ✓</span>
+          )}
+          {isLocked && <span className="text-xs text-red-700 font-semibold">🔒 Locked</span>}
+        </div>
       </div>
     </section>
   );
