@@ -110,6 +110,12 @@ export default function RootLayout({
                 My Picks
               </Link>
               <Link
+                href="/bracket"
+                className="px-3 py-2 rounded-lg text-emerald-950/70 hover:text-emerald-950 hover:bg-emerald-50 transition font-medium"
+              >
+                Bracket
+              </Link>
+              <Link
                 href="/leaderboard"
                 className="px-3 py-2 rounded-lg text-emerald-950/70 hover:text-emerald-950 hover:bg-emerald-50 transition font-medium"
               >
