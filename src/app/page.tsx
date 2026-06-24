@@ -20,9 +20,10 @@ function computePayouts(playerCount: number): {
   amounts: number[];
 } {
   const pot = playerCount * POOL_ENTRY.amount;
-  // Floor each payout to whole dollars; the remainder rolls to 1st place so
-  // the math always sums exactly to the pot — no orphan pennies.
-  const rounded = PAYOUT.split.map((pct) => Math.floor(pot * pct));
+  // Floor each payout to the nearest $5 for clean, easy-to-pay numbers; the
+  // remainder rolls to 1st place so the math always sums exactly to the pot.
+  // (e.g. a 31-player $775 pot pays out $470 / $190 / $115.)
+  const rounded = PAYOUT.split.map((pct) => Math.floor((pot * pct) / 5) * 5);
   const remainder = pot - rounded.reduce((a, b) => a + b, 0);
   rounded[0] += remainder;
   return { pot, amounts: rounded };
