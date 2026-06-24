@@ -3,6 +3,12 @@
 // Two-phase matching:
 //   Phase 1 — strict: our row has team_a_id + team_b_id. Match by kickoff
 //             ±24h AND unordered team-code pair. Group-stage path.
+//   Phase 1.5 — single-side: our row already has ONE team (e.g. a group
+//             winner pinned into its R32 slot before groups ended). Match an
+//             event whose pair INCLUDES that known team, within ±72h, and fill
+//             only the empty side. Keeps the pinned team in place. Runs before
+//             phase 2 so a known team always claims its own event rather than
+//             being grabbed by a both-NULL row on date alone.
 //   Phase 2 — populate: our row has NULL teams (knockout slots before they're
 //             filled). Match by kickoff date proximity alone (±72h), greedy
 //             nearest-neighbor against still-unmatched events. The matched
@@ -102,9 +108,67 @@ export function resolveEvents(opts: {
     });
   }
 
+  // ─── Phase 1.5: single-side (fill the empty side of a half-pinned row) ─
+  // A row with exactly one known team (a group winner pinned into its R32 slot
+  // before groups ended). Only fill it from an event that (a) has BOTH teams in
+  // our roster and (b) includes the pinned team. That guard means we never
+  // attach an opponent until groups are actually over — pre-group ESPN events
+  // carry placeholder codes ("3RD A/B/C/D/F") that aren't in our roster, so they
+  // fall through. It also keeps a group-stage rematch (same two teams) from
+  // leaking in, because phase 1 has already consumed those into the group row.
+  const afterSingleSide: EspnEvent[] = [];
+  for (const ev of remainingEvents) {
+    const evT = Date.parse(ev.date);
+    if (!Number.isFinite(evT)) {
+      afterSingleSide.push(ev);
+      continue;
+    }
+    const homeId = idByCode.get(ev.homeCode);
+    const awayId = idByCode.get(ev.awayCode);
+    if (homeId == null || awayId == null) {
+      afterSingleSide.push(ev);
+      continue;
+    }
+
+    let best: { row: OurMatchRow; dt: number } | null = null;
+    for (const m of opts.matches) {
+      if (usedMatchIds.has(m.id)) continue;
+      const aKnown = m.team_a_id != null;
+      const bKnown = m.team_b_id != null;
+      if (aKnown === bKnown) continue; // need EXACTLY one side known
+      const knownId = aKnown ? m.team_a_id! : m.team_b_id!;
+      if (knownId !== homeId && knownId !== awayId) continue; // event must contain it
+      if (m.kickoff_at == null) continue;
+      const ko = Date.parse(m.kickoff_at);
+      if (!Number.isFinite(ko)) continue;
+      const dt = Math.abs(ko - evT);
+      if (dt > POPULATE_WINDOW_MS) continue;
+      if (best == null || dt < best.dt) best = { row: m, dt };
+    }
+
+    if (best == null) {
+      afterSingleSide.push(ev);
+      continue;
+    }
+    usedMatchIds.add(best.row.id);
+    const aKnown = best.row.team_a_id != null;
+    const knownId = aKnown ? best.row.team_a_id! : best.row.team_b_id!;
+    const otherId = knownId === homeId ? awayId : homeId;
+    const resolvedTeamAId = aKnown ? knownId : otherId;
+    const resolvedTeamBId = aKnown ? otherId : knownId;
+    resolved.push({
+      match: best.row,
+      event: ev,
+      espnHomeIsOurA: ev.homeCode === codeById.get(resolvedTeamAId),
+      populateMode: true,
+      resolvedTeamAId,
+      resolvedTeamBId,
+    });
+  }
+
   // ─── Phase 2: populate (empty knockout slots) ────────────────────────
   const finalUnmatched: EspnEvent[] = [];
-  for (const ev of remainingEvents) {
+  for (const ev of afterSingleSide) {
     const evT = Date.parse(ev.date);
     if (!Number.isFinite(evT)) {
       finalUnmatched.push(ev);

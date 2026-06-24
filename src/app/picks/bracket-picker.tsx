@@ -430,24 +430,28 @@ function BracketCard({
     <div className="card rounded-xl p-2.5 text-xs">
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[9px] uppercase tracking-widest text-emerald-900/40 font-bold">
-          M{match.bracket_slot}
+          Match {match.bracket_slot}
         </span>
         <span className="text-[9px] text-emerald-900/40">{ko}</span>
       </div>
+      {/* R32 opponents that aren't locked yet are always TBD (a real team we
+          just don't know yet); later rounds defer to the parent's label, which
+          is "Pick prior round" when picks are open and "TBD" in read-only/locked
+          preview. */}
       <TeamButton
         team={a}
         selected={picked != null && a?.id === picked}
         disabled={locked || pending || a == null}
+        emptyLabel={match.stage === "r32" ? "TBD" : emptyLabel}
         onClick={() => a && onPick(a.id)}
-        emptyLabel={emptyLabel}
       />
       <div className="text-center text-[9px] text-emerald-900/30 font-bold my-0.5">vs</div>
       <TeamButton
         team={b}
         selected={picked != null && b?.id === picked}
         disabled={locked || pending || b == null}
+        emptyLabel={match.stage === "r32" ? "TBD" : emptyLabel}
         onClick={() => b && onPick(b.id)}
-        emptyLabel={emptyLabel}
       />
     </div>
   );
@@ -457,14 +461,14 @@ function TeamButton({
   team,
   selected,
   disabled,
-  onClick,
   emptyLabel,
+  onClick,
 }: {
   team: Team | null;
   selected: boolean;
   disabled: boolean;
-  onClick: () => void;
   emptyLabel: string;
+  onClick: () => void;
 }) {
   if (!team) {
     return (
