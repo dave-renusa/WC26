@@ -18,15 +18,10 @@ A World Cup 2026 bracket-pool web app. **Next.js 16 (App Router) + Supabase + Ve
 - Build/verify locally with: `NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy bun run build` (and `npx tsc --noEmit`).
 - Commits must be authored `Claude <noreply@anthropic.com>` (a stop-hook checks this). No signing key in the sandbox, so commits show "Unverified" until they land through GitHub — that's expected and only resolves on push.
 
-## ⚠️ Outstanding manual steps (do these to finish current work)
-1. **Run migration `supabase/migrations/007_bracket_picks_open.sql`** in Supabase (adds `tournament_settings.bracket_picks_open`). Until then the admin "Bracket picks open" toggle's Save will error, and the bracket stays read-only (the intended default).
-   - (Migration `006_knockout_scoring.sql` was already applied successfully.)
-2. **Clear the sample R32 teams** so the public preview shows real "TBD" slots, not the fake test lineup, and so real ESPN teams can populate later:
-   ```sql
-   update matches set team_a_id = null, team_b_id = null where stage = 'r32';
-   delete from picks where match_id in (select id from matches where stage <> 'group');
-   ```
-3. **When ready to let people pick** (after real R32 teams load): `/admin` → check **"Bracket picks open"** → Save.
+## Manual steps — status
+1. ✅ **DONE** — Migration `007_bracket_picks_open.sql` has been applied (adds `tournament_settings.bracket_picks_open`). Migration `006_knockout_scoring.sql` was also already applied.
+2. ✅ **DONE** — Sample R32 teams cleared (and test knockout picks deleted). The bracket now shows real "TBD" slots; real ESPN teams will populate after the group stage.
+3. ⏳ **TODO when ready to let people pick** (after real R32 teams load): `/admin` → check **"Bracket picks open"** → Save. Until then the bracket is intentionally read-only for everyone.
 
 ## What's been built (recent work)
 - **Group picks lock per-match** at each game's kickoff (not all at once). 3rd-place + Golden Boot lock at the first kickoff.
