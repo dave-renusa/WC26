@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatEtDeadline } from "@/lib/format";
+import { Countdown } from "./countdown";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ const PICK_WINDOWS = [
     label: "The Bracket",
     matches: 31,
     lockBy: "2026-06-28",
-    lockLabel: "Sun Jun 28 · 12pm ET",
+    lockLabel: "Sun Jun 28 · 3pm ET",
     sub: "R32 → R16 → QF → SF → Final, all at once. Your picks advance.",
   },
 ] as const;
@@ -157,6 +158,10 @@ export default async function Home() {
             See the Rules
           </Link>
         </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-6 pb-12 w-full">
+        <Countdown target={firstR32Kickoff} />
       </section>
 
       <section className="max-w-7xl mx-auto px-6 pb-12 w-full">

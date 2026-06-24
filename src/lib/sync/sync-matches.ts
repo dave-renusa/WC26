@@ -162,14 +162,34 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
   >;
   const teams = (teamRows ?? []) as TeamRow[];
 
+  // Until the bracket is open, extend the fetch window to cover the R32 dates so
+  // knockout teams populate AUTOMATICALLY the moment ESPN swaps group-stage
+  // placeholders for real matchups — no daily check-in or manual "Open bracket"
+  // needed. Once r32_lock_at is set, the window stays as requested and we're back
+  // to plain result syncing. Writes are all idempotent, so the wider window is
+  // safe to run every cron tick.
+  let start = opts.start;
+  let end = opts.end;
+  const { data: openCheck } = await supabase
+    .from("tournament_settings")
+    .select("r32_lock_at")
+    .eq("id", 1)
+    .single();
+  if (!openCheck?.r32_lock_at) {
+    const popStart = new Date("2026-06-26T00:00:00Z");
+    const popEnd = new Date("2026-07-05T00:00:00Z");
+    if (popStart < start) start = popStart;
+    if (popEnd > end) end = popEnd;
+  }
+
   let events: EspnEvent[];
   try {
-    events = await fetchEspnEvents({ start: opts.start, end: opts.end });
+    events = await fetchEspnEvents({ start, end });
   } catch (err) {
     return {
       source: "espn",
-      windowStart: opts.start.toISOString(),
-      windowEnd: opts.end.toISOString(),
+      windowStart: start.toISOString(),
+      windowEnd: end.toISOString(),
       dryRun: opts.dryRun,
       espnEventCount: 0,
       matchesConsidered: matches.length,
@@ -430,8 +450,8 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
 
   return {
     source: "espn",
-    windowStart: opts.start.toISOString(),
-    windowEnd: opts.end.toISOString(),
+    windowStart: start.toISOString(),
+    windowEnd: end.toISOString(),
     dryRun: opts.dryRun,
     espnEventCount: events.length,
     matchesConsidered: matches.length,
