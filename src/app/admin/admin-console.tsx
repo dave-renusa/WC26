@@ -231,6 +231,7 @@ function SettingsSection({ settings }: { settings: TournamentSettings | null }) 
     final_lock_at: settings?.final_lock_at ?? null,
     golden_boot_winner: settings?.golden_boot_winner ?? null,
     is_finalized: settings?.is_finalized ?? false,
+    bracket_picks_open: settings?.bracket_picks_open ?? false,
   }));
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState("");
@@ -240,6 +241,7 @@ function SettingsSection({ settings }: { settings: TournamentSettings | null }) 
     startTransition(async () => {
       const payload: Record<string, string | boolean | null> = {
         is_finalized: state.is_finalized,
+        bracket_picks_open: state.bracket_picks_open,
       };
       for (const f of LOCK_FIELDS) payload[f.key] = state[f.key] as string | null;
       const res = await fetch("/api/admin/settings", {
@@ -276,6 +278,16 @@ function SettingsSection({ settings }: { settings: TournamentSettings | null }) 
           ))}
         </div>
         <label className="mt-4 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={state.bracket_picks_open}
+            onChange={(e) => setState((s) => ({ ...s, bracket_picks_open: e.target.checked }))}
+          />
+          <span>
+            Bracket picks open (clickable) — off = everyone sees the bracket but can&apos;t pick yet
+          </span>
+        </label>
+        <label className="mt-2 flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={state.is_finalized}

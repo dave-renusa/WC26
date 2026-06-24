@@ -37,6 +37,7 @@ export interface TournamentSettings {
   final_lock_at: string | null;
   golden_boot_winner: string | null;
   is_finalized: boolean;
+  bracket_picks_open: boolean;
 }
 
 export default async function AdminPage() {

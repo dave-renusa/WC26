@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { formatEtDeadline } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -80,17 +81,29 @@ export default async function Home() {
   // homepage visitors can see it (profiles RLS is authenticated-only; the
   // view bypasses RLS by running as the view creator).
   let playerCount = 0;
+  let firstR32Kickoff: string | null = null;
   try {
     const supabase = await createClient();
     const { count } = await supabase
       .from("v_leaderboard")
       .select("*", { count: "exact", head: true });
     playerCount = count ?? 0;
+    // Earliest R32 kickoff drives the bracket deadline label; auto-corrects
+    // once ESPN sets the real time.
+    const { data: r32 } = await supabase
+      .from("matches")
+      .select("kickoff_at")
+      .eq("stage", "r32")
+      .order("kickoff_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    firstR32Kickoff = (r32?.kickoff_at as string | null) ?? null;
   } catch {
     /* fallback to 0 */
   }
   const payouts = computePayouts(playerCount);
   const currentWindowId = getCurrentWindowId();
+  const bracketDeadline = formatEtDeadline(firstR32Kickoff);
 
   return (
     <div className="flex-1 flex flex-col">
@@ -246,7 +259,7 @@ export default async function Home() {
                   {w.sub}
                 </div>
                 <div className="text-[10px] uppercase tracking-widest text-emerald-900/40 font-bold mt-3">
-                  Locks {w.lockLabel}
+                  Locks {w.id === "bracket" ? bracketDeadline : w.lockLabel}
                 </div>
               </div>
             );

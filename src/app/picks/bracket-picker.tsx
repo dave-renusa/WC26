@@ -11,6 +11,8 @@ interface Props {
   initialPicks: Record<number, number>;
   initialFinalTotalGoals: number | null;
   bracketLockAt: string | null;
+  // When false, the bracket is visible but read-only (picks not open yet).
+  picksOpen: boolean;
 }
 
 // Stage order for the bracket flow. R32 has real teams from ESPN; R16+ derive
@@ -58,10 +60,14 @@ export function BracketPicker(props: Props) {
   );
   const [goalsSaved, setGoalsSaved] = useState(false);
 
-  const isLocked = useMemo(() => {
+  // Locked by the first-R32-kickoff deadline.
+  const lockedByTime = useMemo(() => {
     if (!props.bracketLockAt) return false;
     return Date.parse(props.bracketLockAt) <= Date.now();
   }, [props.bracketLockAt]);
+  // Read-only when picks aren't open yet, or once the deadline has passed.
+  const readOnly = !props.picksOpen || lockedByTime;
+  const emptyLabel = readOnly ? "TBD" : "Pick prior round";
 
   // Given a match, return the two teams that should appear as choices for
   // THIS player. For R32 these are the actual teams. For R16+ these are the
@@ -122,7 +128,7 @@ export function BracketPicker(props: Props) {
   }
 
   async function pickWinner(matchId: number, teamId: number) {
-    if (isLocked || pendingMatch !== null) return;
+    if (readOnly || pendingMatch !== null) return;
     setErrMsg("");
     setPendingMatch(matchId);
 
@@ -175,7 +181,7 @@ export function BracketPicker(props: Props) {
     const cleaned = raw.replace(/[^0-9]/g, "");
     setFinalGoals(cleaned);
     setGoalsSaved(false);
-    if (isLocked) return;
+    if (readOnly) return;
     const value = cleaned === "" ? null : Number(cleaned);
     startTransition(async () => {
       const { error } = await supabase.from("bonus_picks").upsert(
@@ -211,9 +217,10 @@ export function BracketPicker(props: Props) {
           match={match}
           teams={teamsForMatch(match)}
           picked={picks[match.id] ?? null}
-          locked={isLocked}
+          locked={readOnly}
           pending={pendingMatch === match.id}
           onPick={(teamId) => pickWinner(match.id, teamId)}
+          emptyLabel={emptyLabel}
         />
       </div>
     );
@@ -267,15 +274,25 @@ export function BracketPicker(props: Props) {
           <span>
             {totalPicked} / 31 picks made
           </span>
-          {props.bracketLockAt && (
-            <span className="text-emerald-900/40">
-              {isLocked
-                ? "Locked"
-                : `Locks ${new Date(props.bracketLockAt).toLocaleString()}`}
-            </span>
-          )}
+          <span className="text-emerald-900/40">
+            {!props.picksOpen
+              ? "👀 Preview · picks open soon"
+              : lockedByTime
+                ? "🔒 Locked"
+                : props.bracketLockAt
+                  ? `Locks ${new Date(props.bracketLockAt).toLocaleString()}`
+                  : "Open for picks"}
+          </span>
         </div>
       </div>
+
+      {readOnly && (
+        <div className="mb-5 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900">
+          {lockedByTime
+            ? "🔒 The bracket is locked — picks are final."
+            : "👀 Preview only — the bracket isn’t open for picks yet. Have a look around; you’ll be able to fill it out once picks open."}
+        </div>
+      )}
 
       <p className="text-sm text-emerald-950/70 mb-6 max-w-2xl leading-relaxed">
         Pick winners for all 31 knockout matches at once. Your R32 picks advance to fill
@@ -342,9 +359,10 @@ export function BracketPicker(props: Props) {
                     match={m}
                     teams={teamsForMatch(m)}
                     picked={picks[m.id] ?? null}
-                    locked={isLocked}
+                    locked={readOnly}
                     pending={pendingMatch === m.id}
                     onPick={(teamId) => pickWinner(m.id, teamId)}
+                    emptyLabel={emptyLabel}
                   />
                 ))}
               </div>
@@ -370,14 +388,18 @@ export function BracketPicker(props: Props) {
             inputMode="numeric"
             value={finalGoals}
             onChange={(e) => saveFinalGoals(e.target.value)}
-            disabled={isLocked}
+            disabled={readOnly}
             placeholder="e.g. 3"
             className="w-28 text-sm px-3 py-2.5 rounded-lg border border-amber-700/20 bg-white focus:outline-none focus:ring-2 focus:ring-amber-600/40 disabled:opacity-60 tabular-nums"
           />
-          {goalsSaved && !isLocked && (
+          {goalsSaved && !readOnly && (
             <span className="text-xs font-bold text-emerald-700">Saved ✓</span>
           )}
-          {isLocked && <span className="text-xs text-red-700 font-semibold">🔒 Locked</span>}
+          {readOnly && (
+            <span className="text-xs font-semibold text-amber-700">
+              {lockedByTime ? "🔒 Locked" : "Opens soon"}
+            </span>
+          )}
         </div>
       </div>
     </section>
@@ -391,6 +413,7 @@ function BracketCard({
   locked,
   pending,
   onPick,
+  emptyLabel,
 }: {
   match: Match;
   teams: [Team | null, Team | null];
@@ -398,6 +421,7 @@ function BracketCard({
   locked: boolean;
   pending: boolean;
   onPick: (teamId: number) => void;
+  emptyLabel: string;
 }) {
   const [a, b] = teams;
   const ko = match.kickoff_at ? new Date(match.kickoff_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
@@ -415,6 +439,7 @@ function BracketCard({
         selected={picked != null && a?.id === picked}
         disabled={locked || pending || a == null}
         onClick={() => a && onPick(a.id)}
+        emptyLabel={emptyLabel}
       />
       <div className="text-center text-[9px] text-emerald-900/30 font-bold my-0.5">vs</div>
       <TeamButton
@@ -422,6 +447,7 @@ function BracketCard({
         selected={picked != null && b?.id === picked}
         disabled={locked || pending || b == null}
         onClick={() => b && onPick(b.id)}
+        emptyLabel={emptyLabel}
       />
     </div>
   );
@@ -432,16 +458,18 @@ function TeamButton({
   selected,
   disabled,
   onClick,
+  emptyLabel,
 }: {
   team: Team | null;
   selected: boolean;
   disabled: boolean;
   onClick: () => void;
+  emptyLabel: string;
 }) {
   if (!team) {
     return (
       <div className="w-full px-2 py-1.5 rounded-md bg-emerald-900/5 text-emerald-900/30 text-[11px] text-center italic">
-        Pick prior round
+        {emptyLabel}
       </div>
     );
   }

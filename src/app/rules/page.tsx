@@ -1,3 +1,8 @@
+import { createClient } from "@/lib/supabase/server";
+import { formatEtDeadline } from "@/lib/format";
+
+export const dynamic = "force-dynamic";
+
 const ROUNDS: { label: string; pts: number; games: number }[] = [
   { label: "Group Stage", pts: 1, games: 72 },
   { label: "Round of 32", pts: 1, games: 16 },
@@ -7,7 +12,25 @@ const ROUNDS: { label: string; pts: number; games: number }[] = [
   { label: "Final", pts: 13, games: 1 },
 ];
 
-export default function RulesPage() {
+export default async function RulesPage() {
+  // Bracket deadline derived from the real first-R32 kickoff (auto-corrects
+  // when ESPN sets the time). Falls back to "TBD" if unavailable.
+  let firstR32Kickoff: string | null = null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("matches")
+      .select("kickoff_at")
+      .eq("stage", "r32")
+      .order("kickoff_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    firstR32Kickoff = (data?.kickoff_at as string | null) ?? null;
+  } catch {
+    /* fallback */
+  }
+  const bracketDeadline = formatEtDeadline(firstR32Kickoff, true);
+
   return (
     <div className="max-w-3xl mx-auto px-6 py-12 w-full">
       <h1 className="text-4xl font-black tracking-tighter text-emerald-950 mb-3">
@@ -104,7 +127,7 @@ export default function RulesPage() {
             <strong>Window 2 — The bracket.</strong> Once group stage ends, your full
             knockout bracket opens: R32 (16), R16 (8), QF (4), SF (2), Final (1) — all 31 matches
             picked in one sitting. You have until kickoff of R32 match #1 —{" "}
-            <strong>Sunday, June 28, 2026 at 12:00 PM ET</strong> — to fill out the entire bracket.
+            <strong>{bracketDeadline}</strong> — to fill out the entire bracket.
             No second chances after that — your bracket is your bracket.
           </p>
         </div>

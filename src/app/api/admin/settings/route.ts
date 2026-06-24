@@ -21,12 +21,15 @@ export async function POST(req: NextRequest) {
   if ("error" in ctx) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }
-  const body = (await req.json()) as Partial<Record<LockField | "is_finalized", string | boolean | null>>;
+  const body = (await req.json()) as Partial<
+    Record<LockField | "is_finalized" | "bracket_picks_open", string | boolean | null>
+  >;
   const update: Record<string, string | boolean | null> = {};
   for (const f of LOCK_FIELDS) {
     if (f in body) update[f] = (body[f] as string | null) || null;
   }
   if (typeof body.is_finalized === "boolean") update.is_finalized = body.is_finalized;
+  if (typeof body.bracket_picks_open === "boolean") update.bracket_picks_open = body.bracket_picks_open;
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "no fields to update" }, { status: 400 });
   }
