@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Team, Match, Stage } from "@/lib/types";
 
@@ -196,6 +196,67 @@ export function BracketPicker(props: Props) {
     [picks, props.knockoutMatches],
   );
 
+  // Centered NCAA-style tree (desktop). Built recursively from the bracket
+  // wiring: each match's two feeders come from team_a/b_from_match_id, so the
+  // left half is the subtree rooted at SF #1 and the right half at SF #2, with
+  // the Final in the middle. Falls back to the stacked layout on mobile.
+  const sfMatches = matchesByStage["sf"] ?? [];
+  const finalMatch = (matchesByStage["final"] ?? [])[0];
+  const treeReady = sfMatches.length >= 2 && !!finalMatch;
+
+  function cellFor(match: Match, widthClass: string): ReactNode {
+    return (
+      <div className={`${widthClass} shrink-0`}>
+        <BracketCard
+          match={match}
+          teams={teamsForMatch(match)}
+          picked={picks[match.id] ?? null}
+          locked={isLocked}
+          pending={pendingMatch === match.id}
+          onPick={(teamId) => pickWinner(match.id, teamId)}
+        />
+      </div>
+    );
+  }
+
+  function renderSubtree(match: Match, dir: "l" | "r"): ReactNode {
+    const kids = [
+      match.team_a_from_match_id != null ? matchById.get(match.team_a_from_match_id) : undefined,
+      match.team_b_from_match_id != null ? matchById.get(match.team_b_from_match_id) : undefined,
+    ].filter((m): m is Match => !!m);
+
+    const cell = cellFor(match, "w-32");
+    if (kids.length < 2) return cell; // R32 leaf
+
+    const childCol = (
+      <div className="flex flex-col justify-center gap-2">
+        {renderSubtree(kids[0], dir)}
+        {renderSubtree(kids[1], dir)}
+      </div>
+    );
+    const conn = (
+      <div className={`bk-conn ${dir === "l" ? "bk-conn-l" : "bk-conn-r"}`} aria-hidden />
+    );
+
+    return (
+      <div className="flex items-center">
+        {dir === "l" ? (
+          <>
+            {childCol}
+            {conn}
+            {cell}
+          </>
+        ) : (
+          <>
+            {cell}
+            {conn}
+            {childCol}
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <section className="max-w-7xl mx-auto px-6 py-12 w-full">
       <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
@@ -228,7 +289,31 @@ export function BracketPicker(props: Props) {
         </div>
       )}
 
-      <div className="space-y-6">
+      {/* Desktop: centered NCAA-style bracket tree */}
+      {treeReady && (
+        <div className="hidden lg:block overflow-x-auto pb-4">
+          <div className="flex justify-center gap-6 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-900/40 mb-3">
+            <span>R32 · R16 · QF · SF</span>
+            <span className="text-amber-700">Final</span>
+            <span>SF · QF · R16 · R32</span>
+          </div>
+          <div className="flex items-stretch justify-center min-w-max mx-auto px-2">
+            {renderSubtree(sfMatches[0], "l")}
+            <div className="bk-line" aria-hidden />
+            <div className="flex flex-col justify-center">
+              <div className="text-[10px] uppercase tracking-widest text-amber-700 font-bold text-center mb-1">
+                🏆 Final
+              </div>
+              {cellFor(finalMatch, "w-36")}
+            </div>
+            <div className="bk-line" aria-hidden />
+            {renderSubtree(sfMatches[1], "r")}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile (and fallback): stacked rounds */}
+      <div className={`space-y-6 ${treeReady ? "lg:hidden" : ""}`}>
         {KNOCKOUT_STAGES.map((stage) => {
           const stageMatches = matchesByStage[stage] ?? [];
           if (stageMatches.length === 0) return null;

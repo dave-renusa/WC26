@@ -24,6 +24,7 @@
 
   --line: rgba(15, 31, 23, 0.08);
   --line-strong: rgba(15, 31, 23, 0.15);
+  --bk-line: rgba(4, 120, 87, 0.40);
 }
 
 @theme inline {
@@ -172,6 +173,20 @@ main, header, footer { position: relative; z-index: 1; }
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+/* ───── Knockout bracket tree (desktop) ───── */
+/* Connector between a pair of feeder matches and the match they feed.
+   .bk-conn-l = feeders on the left, parent on the right (left half of bracket).
+   .bk-conn-r = mirrored (right half). The vertical bar spans the two feeders'
+   centers (25%–75%); the horizontal line runs to the parent at the midpoint. */
+.bk-conn { position: relative; width: 1.5rem; flex: 0 0 auto; align-self: stretch; }
+.bk-conn-l::before { content: ""; position: absolute; left: 0; top: 25%; height: 50%; border-left: 2px solid var(--bk-line); }
+.bk-conn-l::after  { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid var(--bk-line); }
+.bk-conn-r::before { content: ""; position: absolute; right: 0; top: 25%; height: 50%; border-right: 2px solid var(--bk-line); }
+.bk-conn-r::after  { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid var(--bk-line); }
+/* Single straight connector (SF → Final, no pairing). */
+.bk-line { position: relative; width: 1.5rem; flex: 0 0 auto; align-self: stretch; }
+.bk-line::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid var(--bk-line); }
 
 /* Patriot stripe — used as section accent */
 .stripe-usa {
