@@ -15,6 +15,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { fetchEspnEvents, type EspnEvent } from "./espn";
 import { resolveEvents, type ResolvedPair, type OurMatchRow, type TeamRow } from "./resolve";
+import { fillFromCompletedGroups } from "./group-standings";
 
 export interface SyncOptions {
   start: Date;
@@ -437,6 +438,17 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
   // first R32 kickoff. One-time transition (skips if locks already set), so
   // it's safe to evaluate on every cron pass.
   if (!opts.dryRun) {
+    // Place the winner + runner-up of any group that has finished into their R32
+    // slots, so the bracket fills in group by group as the tournament progresses.
+    try {
+      await fillFromCompletedGroups(supabase);
+    } catch (err) {
+      entries.push({
+        match_id: null,
+        status: "error",
+        reason: `group-standings fill failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
     try {
       await maybeAutoOpenBracket(supabase);
     } catch (err) {
