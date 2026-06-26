@@ -127,63 +127,81 @@ export function BracketPicker(props: Props) {
     ];
   }
 
+  // Delete later-round picks that are no longer reachable after a change or
+  // clear (their feeder pick moved or was removed). `matchId` itself is handled
+  // by the caller, so it's excluded here.
+  async function deleteClearedDependents(
+    nextPicks: Record<number, number>,
+    matchId: number,
+  ) {
+    const cleared = Object.keys(picks)
+      .map(Number)
+      .filter((id) => id !== matchId && picks[id] != null && nextPicks[id] == null);
+    if (cleared.length > 0) {
+      await supabase
+        .from("picks")
+        .delete()
+        .eq("user_id", props.userId)
+        .in("match_id", cleared);
+    }
+  }
+
   async function pickWinner(matchId: number, teamId: number) {
     if (readOnly || pendingMatch !== null) return;
+    if (picks[matchId] === teamId) return; // already this pick — nothing to do
     setErrMsg("");
     setPendingMatch(matchId);
 
-    // Clicking the team you've already picked toggles the pick OFF.
-    const isDeselect = picks[matchId] === teamId;
-
-    // Build the new picks state, cascading clears for dependents. Removing a
-    // pick (deselect) empties later-round slots that fed off it, exactly like
-    // changing the pick does — clearDependentPicks handles both.
-    const nextPicks = { ...picks };
-    if (isDeselect) delete nextPicks[matchId];
-    else nextPicks[matchId] = teamId;
+    // Build the new picks state, cascading clears for now-unreachable dependents.
+    const nextPicks = { ...picks, [matchId]: teamId };
     const match = matchById.get(matchId);
     if (match) clearDependentPicks(match, nextPicks);
 
     startTransition(async () => {
-      if (isDeselect) {
-        const { error } = await supabase
-          .from("picks")
-          .delete()
-          .eq("user_id", props.userId)
-          .eq("match_id", matchId);
-        if (error) {
-          setErrMsg(`Couldn't clear pick: ${error.message}`);
-          setPendingMatch(null);
-          return;
-        }
-      } else {
-        const { error } = await supabase.from("picks").upsert(
-          {
-            user_id: props.userId,
-            match_id: matchId,
-            predicted_winner_team_id: teamId,
-          },
-          { onConflict: "user_id,match_id" },
-        );
-        if (error) {
-          setErrMsg(`Save failed: ${error.message}`);
-          setPendingMatch(null);
-          return;
-        }
+      const { error } = await supabase.from("picks").upsert(
+        {
+          user_id: props.userId,
+          match_id: matchId,
+          predicted_winner_team_id: teamId,
+        },
+        { onConflict: "user_id,match_id" },
+      );
+      if (error) {
+        setErrMsg(`Save failed: ${error.message}`);
+        setPendingMatch(null);
+        return;
       }
-      // Persist dependent clears in the DB too — delete later-round picks that
-      // are no longer reachable (their feeder pick changed or was removed).
-      // matchId is handled above, so exclude it here.
-      const cleared = Object.keys(picks)
-        .map(Number)
-        .filter((id) => id !== matchId && picks[id] != null && nextPicks[id] == null);
-      if (cleared.length > 0) {
-        await supabase
-          .from("picks")
-          .delete()
-          .eq("user_id", props.userId)
-          .in("match_id", cleared);
+      await deleteClearedDependents(nextPicks, matchId);
+      setPicks(nextPicks);
+      setPendingMatch(null);
+    });
+  }
+
+  // Clear a single matchup's pick (the ✕ on the card), cascading the clear to
+  // any later-round picks that fed off it.
+  async function clearPick(matchId: number) {
+    if (readOnly || pendingMatch !== null) return;
+    if (picks[matchId] == null) return;
+    setErrMsg("");
+    setPendingMatch(matchId);
+
+    const nextPicks = { ...picks };
+    delete nextPicks[matchId];
+    const match = matchById.get(matchId);
+    if (match) clearDependentPicks(match, nextPicks);
+
+    startTransition(async () => {
+      const { error } = await supabase
+        .from("picks")
+        .delete()
+        .eq("user_id", props.userId)
+        .eq("match_id", matchId);
+      if (error) {
+        setErrMsg(`Couldn't clear pick: ${error.message}`);
+        setPendingMatch(null);
+        return;
       }
+      await deleteClearedDependents(nextPicks, matchId);
       setPicks(nextPicks);
       setPendingMatch(null);
     });
@@ -233,6 +251,7 @@ export function BracketPicker(props: Props) {
           locked={readOnly}
           pending={pendingMatch === match.id}
           onPick={(teamId) => pickWinner(match.id, teamId)}
+          onClear={() => clearPick(match.id)}
           emptyLabel={emptyLabel}
         />
       </div>
@@ -310,8 +329,8 @@ export function BracketPicker(props: Props) {
       <p className="text-sm text-emerald-950/70 mb-6 max-w-2xl leading-relaxed">
         Pick winners for all 31 knockout matches at once. Your R32 picks advance to fill
         R16 slots, R16 winners fill QF slots, and so on. Change a pick in an earlier round and
-        the affected later picks reset — pick again from your new bracket path. Click a team
-        you&apos;ve already picked to un-pick it.
+        the affected later picks reset — pick again from your new bracket path. To undo a
+        pick, hit the ✕ on that matchup.
       </p>
 
       {errMsg && (
@@ -376,6 +395,7 @@ export function BracketPicker(props: Props) {
                     locked={readOnly}
                     pending={pendingMatch === m.id}
                     onPick={(teamId) => pickWinner(m.id, teamId)}
+                    onClear={() => clearPick(m.id)}
                     emptyLabel={emptyLabel}
                   />
                 ))}
@@ -427,6 +447,7 @@ function BracketCard({
   locked,
   pending,
   onPick,
+  onClear,
   emptyLabel,
 }: {
   match: Match;
@@ -435,6 +456,7 @@ function BracketCard({
   locked: boolean;
   pending: boolean;
   onPick: (teamId: number) => void;
+  onClear: () => void;
   emptyLabel: string;
 }) {
   const [a, b] = teams;
@@ -446,7 +468,21 @@ function BracketCard({
         <span className="text-[9px] uppercase tracking-widest text-emerald-900/40 font-bold">
           Match {match.bracket_slot}
         </span>
-        <span className="text-[9px] text-emerald-900/40">{ko}</span>
+        <span className="flex items-center gap-1.5">
+          <span className="text-[9px] text-emerald-900/40">{ko}</span>
+          {picked != null && !locked && (
+            <button
+              type="button"
+              onClick={onClear}
+              disabled={pending}
+              title="Clear this pick"
+              aria-label="Clear this pick"
+              className="text-[10px] leading-none text-emerald-900/40 hover:text-red-600 disabled:opacity-40 transition"
+            >
+              ✕
+            </button>
+          )}
+        </span>
       </div>
       {/* R32 opponents that aren't locked yet are always TBD (a real team we
           just don't know yet); later rounds defer to the parent's label, which
@@ -496,7 +532,6 @@ function TeamButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      title={selected ? "Click to remove this pick" : undefined}
       className={`w-full px-2 py-1.5 rounded-md text-left flex items-center gap-1.5 transition ${
         selected
           ? "bg-gradient-to-br from-amber-100 to-emerald-100 border border-amber-400 shadow-sm font-bold text-emerald-950"
