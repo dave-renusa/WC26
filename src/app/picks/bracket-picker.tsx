@@ -232,7 +232,7 @@ export function BracketPicker(props: Props) {
       match.team_b_from_match_id != null ? matchById.get(match.team_b_from_match_id) : undefined,
     ].filter((m): m is Match => !!m);
 
-    const cell = cellFor(match, "w-32");
+    const cell = cellFor(match, "w-24");
     if (kids.length < 2) return cell; // R32 leaf
 
     const childCol = (
@@ -321,7 +321,7 @@ export function BracketPicker(props: Props) {
               <div className="text-[10px] uppercase tracking-widest text-amber-700 font-bold text-center mb-1">
                 🏆 Final
               </div>
-              {cellFor(finalMatch, "w-36")}
+              {cellFor(finalMatch, "w-28")}
             </div>
             <div className="bk-line" aria-hidden />
             {renderSubtree(sfMatches[1], "r")}
