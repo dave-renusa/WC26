@@ -132,38 +132,51 @@ export function BracketPicker(props: Props) {
     setErrMsg("");
     setPendingMatch(matchId);
 
-    // Build the new picks state, cascading clears for dependents.
-    const nextPicks = { ...picks, [matchId]: teamId };
+    // Clicking the team you've already picked toggles the pick OFF.
+    const isDeselect = picks[matchId] === teamId;
+
+    // Build the new picks state, cascading clears for dependents. Removing a
+    // pick (deselect) empties later-round slots that fed off it, exactly like
+    // changing the pick does — clearDependentPicks handles both.
+    const nextPicks = { ...picks };
+    if (isDeselect) delete nextPicks[matchId];
+    else nextPicks[matchId] = teamId;
     const match = matchById.get(matchId);
     if (match) clearDependentPicks(match, nextPicks);
 
-    // Persist this pick. Dependent clears we do client-side only — the picks
-    // table has cascade FKs but we don't actually delete picks for dependent
-    // rounds, we just clear them in the UI. That's fine: if a player picks
-    // R32 #1 = Brazil → R16 #1 = Brazil, then changes R32 #1 to France, the
-    // R16 #1 = Brazil row stays in the DB but is shown as cleared and the
-    // user re-picks. Cleaner alternative: delete the stale picks server-side.
-    // Skipping that for now since dependent deletes require extra round-trips
-    // and reconcile on next render anyway.
     startTransition(async () => {
-      const { error } = await supabase.from("picks").upsert(
-        {
-          user_id: props.userId,
-          match_id: matchId,
-          predicted_winner_team_id: teamId,
-        },
-        { onConflict: "user_id,match_id" },
-      );
-      if (error) {
-        setErrMsg(`Save failed: ${error.message}`);
-        setPendingMatch(null);
-        return;
+      if (isDeselect) {
+        const { error } = await supabase
+          .from("picks")
+          .delete()
+          .eq("user_id", props.userId)
+          .eq("match_id", matchId);
+        if (error) {
+          setErrMsg(`Couldn't clear pick: ${error.message}`);
+          setPendingMatch(null);
+          return;
+        }
+      } else {
+        const { error } = await supabase.from("picks").upsert(
+          {
+            user_id: props.userId,
+            match_id: matchId,
+            predicted_winner_team_id: teamId,
+          },
+          { onConflict: "user_id,match_id" },
+        );
+        if (error) {
+          setErrMsg(`Save failed: ${error.message}`);
+          setPendingMatch(null);
+          return;
+        }
       }
-      // Persist the clears in the DB too — delete dependent picks that are
-      // no longer valid.
+      // Persist dependent clears in the DB too — delete later-round picks that
+      // are no longer reachable (their feeder pick changed or was removed).
+      // matchId is handled above, so exclude it here.
       const cleared = Object.keys(picks)
         .map(Number)
-        .filter((id) => picks[id] != null && nextPicks[id] == null);
+        .filter((id) => id !== matchId && picks[id] != null && nextPicks[id] == null);
       if (cleared.length > 0) {
         await supabase
           .from("picks")
@@ -297,7 +310,8 @@ export function BracketPicker(props: Props) {
       <p className="text-sm text-emerald-950/70 mb-6 max-w-2xl leading-relaxed">
         Pick winners for all 31 knockout matches at once. Your R32 picks advance to fill
         R16 slots, R16 winners fill QF slots, and so on. Change a pick in an earlier round and
-        the affected later picks reset — pick again from your new bracket path.
+        the affected later picks reset — pick again from your new bracket path. Click a team
+        you&apos;ve already picked to un-pick it.
       </p>
 
       {errMsg && (
@@ -482,6 +496,7 @@ function TeamButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
+      title={selected ? "Click to remove this pick" : undefined}
       className={`w-full px-2 py-1.5 rounded-md text-left flex items-center gap-1.5 transition ${
         selected
           ? "bg-gradient-to-br from-amber-100 to-emerald-100 border border-amber-400 shadow-sm font-bold text-emerald-950"
