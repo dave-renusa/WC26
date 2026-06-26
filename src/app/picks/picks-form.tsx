@@ -477,7 +477,7 @@ export function PicksForm({
               Bonus · 15 pts
             </div>
             <div className="text-lg font-bold text-emerald-950 mb-1">Golden Boot pick</div>
-            <p className="text-xs text-emerald-950/60 mb-3">
+            <p className="text-xs text-emerald-950/80 mb-3">
               The Golden Boot is awarded to the player who scores the most goals across the
               entire tournament. Pick who you think lifts it.
             </p>
@@ -528,7 +528,7 @@ export function PicksForm({
                 </ul>
               )}
             </div>
-            <p className="mt-2 text-[11px] text-amber-900/70 leading-relaxed">
+            <p className="mt-2 text-[11px] text-amber-900 leading-relaxed">
               <strong className="text-emerald-950">Tip:</strong> start typing and pick from
               the dropdown for a clean match. Capitalization and accent marks are forgiven,
               but <em>spelling has to be exact</em>. Use full name when possible. Borderline

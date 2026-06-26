@@ -342,14 +342,14 @@ export default async function Home() {
                 <div className="text-[10px] uppercase tracking-widest text-amber-800 font-bold">
                   If the pool closed right now
                 </div>
-                <div className="text-sm text-emerald-950/70 mt-0.5">
+                <div className="text-sm text-emerald-950/85 mt-0.5">
                   {playerCount} {playerCount === 1 ? "player" : "players"} × ${POOL_ENTRY.amount} = <strong className="text-emerald-950">${payouts.pot}</strong> pot
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap mt-auto pt-4">
                 {payouts.amounts.map((amt, i) => (
                   <div key={i} className="flex-1 min-w-[80px] text-center px-4 py-2 rounded-lg bg-white/70 border border-amber-900/15">
-                    <div className="text-[10px] uppercase tracking-widest font-bold text-amber-900/70">
+                    <div className="text-[10px] uppercase tracking-widest font-bold text-amber-900">
                       {PAYOUT.places[i]}
                     </div>
                     <div className="text-xl font-black text-gold">${amt}</div>
@@ -421,7 +421,7 @@ export default async function Home() {
                 Bonus
               </div>
               <div className="text-lg font-bold mt-1 text-emerald-950">Golden Boot pick</div>
-              <div className="text-xs text-amber-900/70 mt-0.5">Predict the tournament top scorer</div>
+              <div className="text-xs text-amber-900 mt-0.5">Predict the tournament top scorer</div>
             </div>
             <div className="text-3xl font-black text-gold">+15</div>
           </div>

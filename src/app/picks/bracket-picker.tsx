@@ -377,7 +377,7 @@ export function BracketPicker(props: Props) {
           Tiebreaker
         </div>
         <div className="text-lg font-bold text-emerald-950 mb-1">Total goals in the Final</div>
-        <p className="text-xs text-emerald-950/60 mb-3">
+        <p className="text-xs text-emerald-950/80 mb-3">
           Combined goals by both teams in the Final (regulation + extra time). If players
           finish level on points, closest guess wins.
         </p>
