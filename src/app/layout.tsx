@@ -104,16 +104,16 @@ export default function RootLayout({
             </Link>
             <nav className="flex items-center gap-1 text-sm">
               <Link
-                href="/picks"
-                className="px-3 py-2 rounded-lg text-emerald-950/70 hover:text-emerald-950 hover:bg-emerald-50 transition font-medium"
-              >
-                My Picks
-              </Link>
-              <Link
                 href="/bracket"
                 className="px-3 py-2 rounded-lg text-emerald-950/70 hover:text-emerald-950 hover:bg-emerald-50 transition font-medium"
               >
                 Bracket
+              </Link>
+              <Link
+                href="/picks"
+                className="px-3 py-2 rounded-lg text-emerald-950/70 hover:text-emerald-950 hover:bg-emerald-50 transition font-medium"
+              >
+                Group Picks
               </Link>
               <Link
                 href="/leaderboard"
