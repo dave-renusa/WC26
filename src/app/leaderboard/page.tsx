@@ -130,13 +130,13 @@ export default async function LeaderboardPage() {
       ) : (
         <div className="mt-8 card rounded-2xl overflow-hidden">
           {/* Column header — desktop table only; the mobile cards are self-labeled. */}
-          <div className="hidden sm:grid grid-cols-[auto_1fr_repeat(5,5rem)] gap-x-4 px-5 py-3 text-[10px] uppercase tracking-wide font-bold text-emerald-900/50 border-b border-emerald-900/10">
+          <div className="hidden sm:grid grid-cols-[auto_1fr_repeat(5,5.5rem)] items-end gap-x-4 px-5 py-3 text-[10px] uppercase tracking-wide font-bold text-emerald-900/50 border-b border-emerald-900/10">
             <span className="w-7">#</span>
             <span>Player</span>
-            <span className="text-right">My Bracket</span>
-            <span className="text-right">Group Stage</span>
-            <span className="text-right">3rd-Pl</span>
-            <span className="text-right">Bonus</span>
+            <span className="text-right">Group</span>
+            <span className="text-right">3rd Place</span>
+            <span className="text-right">Bracket</span>
+            <span className="text-right">Upset &amp; GB Bonus</span>
             <span className="text-right">Total</span>
           </div>
           {leaderboard.map((row, i) => {
@@ -158,19 +158,19 @@ export default async function LeaderboardPage() {
               <details key={row.user_id} className="border-b border-emerald-900/5 last:border-b-0 group">
                 <summary className="px-5 py-3 cursor-pointer hover:bg-emerald-50/50 list-none">
                   {/* Desktop: single table row */}
-                  <div className="hidden sm:grid grid-cols-[auto_1fr_repeat(5,5rem)] gap-x-4 items-center">
+                  <div className="hidden sm:grid grid-cols-[auto_1fr_repeat(5,5.5rem)] gap-x-4 items-center">
                     <span className={`text-sm font-black w-7 ${rankColor}`}>{i + 1}</span>
                     <span className="font-semibold text-emerald-950 truncate">
                       {row.display_name}
-                    </span>
-                    <span className="text-right text-sm text-emerald-950/70 tabular-nums">
-                      {fmtPoints(bracketPts)}
                     </span>
                     <span className="text-right text-sm text-emerald-950/70 tabular-nums">
                       {fmtPoints(groupPts)}
                     </span>
                     <span className="text-right text-sm text-emerald-950/70 tabular-nums">
                       {fmtPoints(row.third_place_points)}
+                    </span>
+                    <span className="text-right text-sm text-emerald-950/70 tabular-nums">
+                      {fmtPoints(bracketPts)}
                     </span>
                     <span className="text-right text-sm text-emerald-950/70 tabular-nums">
                       {fmtPoints(row.bonus_points)}
@@ -194,10 +194,10 @@ export default async function LeaderboardPage() {
                     </div>
                     <div className="mt-3 grid grid-cols-5 gap-1.5">
                       {[
-                        { label: "My Bracket", value: bracketPts },
-                        { label: "Group Stage", value: groupPts },
-                        { label: "3rd-Pl", value: row.third_place_points },
-                        { label: "Bonus", value: row.bonus_points },
+                        { label: "Group", value: groupPts },
+                        { label: "3rd Place", value: row.third_place_points },
+                        { label: "Bracket", value: bracketPts },
+                        { label: "Upset & GB", value: row.bonus_points },
                         { label: "Total", value: row.total_points, total: true },
                       ].map((s) => (
                         <div
