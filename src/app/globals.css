@@ -97,12 +97,12 @@ main, header, footer { position: relative; z-index: 1; }
 /* Completed-knockout result tint on a bracket card. Defined unlayered (like
    .card) and after it, so these win the cascade over .card's white background. */
 .bk-correct {
-  background: linear-gradient(180deg, #ffffff 0%, var(--pitch-soft) 260%);
-  border: 1px solid rgba(4, 120, 87, 0.45);
+  background: #f4faf7;
+  border: 1px solid rgba(4, 120, 87, 0.20);
 }
 .bk-wrong {
-  background: linear-gradient(180deg, #ffffff 0%, #fde2e2 260%);
-  border: 1px solid rgba(185, 28, 28, 0.40);
+  background: #fdf5f5;
+  border: 1px solid rgba(185, 28, 28, 0.18);
 }
 
 .card-gold {
