@@ -462,14 +462,32 @@ function BracketCard({
   const [a, b] = teams;
   const ko = match.kickoff_at ? new Date(match.kickoff_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
 
+  // Once the game is decided (a winner is recorded), tint the card by how the
+  // player's pick fared: light green if their pick won, light red if it lost.
+  // No pick (or no result yet) → no tint.
+  const winnerId = match.winner_team_id;
+  const decided = winnerId != null;
+  const correct = decided && picked != null && picked === winnerId;
+  const wrong = decided && picked != null && picked !== winnerId;
+  const resultClass = correct ? "bk-correct" : wrong ? "bk-wrong" : "";
+  const score =
+    decided && match.score_a != null && match.score_b != null
+      ? `${match.score_a}–${match.score_b}`
+      : "";
+
   return (
-    <div className="card rounded-xl p-2.5 text-xs">
+    <div className={`card rounded-xl p-2.5 text-xs ${resultClass}`}>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[9px] uppercase tracking-widest text-emerald-900/40 font-bold">
           Match {match.bracket_slot}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="text-[9px] text-emerald-900/40">{ko}</span>
+          {decided && picked != null && (
+            <span className={`text-[10px] font-bold ${correct ? "text-emerald-700" : "text-red-600"}`}>
+              {correct ? "✓" : "✗"}
+            </span>
+          )}
+          <span className="text-[9px] text-emerald-900/40">{score || ko}</span>
           {picked != null && !locked && (
             <button
               type="button"
@@ -491,6 +509,7 @@ function BracketCard({
       <TeamButton
         team={a}
         selected={picked != null && a?.id === picked}
+        isWinner={decided && a != null && a.id === winnerId}
         disabled={locked || pending || a == null}
         emptyLabel={match.stage === "r32" ? "TBD" : emptyLabel}
         onClick={() => a && onPick(a.id)}
@@ -499,6 +518,7 @@ function BracketCard({
       <TeamButton
         team={b}
         selected={picked != null && b?.id === picked}
+        isWinner={decided && b != null && b.id === winnerId}
         disabled={locked || pending || b == null}
         emptyLabel={match.stage === "r32" ? "TBD" : emptyLabel}
         onClick={() => b && onPick(b.id)}
@@ -510,12 +530,14 @@ function BracketCard({
 function TeamButton({
   team,
   selected,
+  isWinner = false,
   disabled,
   emptyLabel,
   onClick,
 }: {
   team: Team | null;
   selected: boolean;
+  isWinner?: boolean;
   disabled: boolean;
   emptyLabel: string;
   onClick: () => void;
@@ -533,10 +555,12 @@ function TeamButton({
       disabled={disabled}
       onClick={onClick}
       className={`w-full px-2 py-1.5 rounded-md text-left flex items-center gap-1.5 transition ${
-        selected
-          ? "bg-gradient-to-br from-amber-100 to-emerald-100 border border-amber-400 shadow-sm font-bold text-emerald-950"
-          : "bg-white border border-emerald-900/10 hover:bg-emerald-50 text-emerald-950/80"
-      } ${disabled && !selected ? "opacity-50 cursor-not-allowed" : ""}`}
+        isWinner
+          ? "bg-emerald-50 border border-emerald-500 ring-1 ring-emerald-500/40 font-bold text-emerald-950"
+          : selected
+            ? "bg-gradient-to-br from-amber-100 to-emerald-100 border border-amber-400 shadow-sm font-bold text-emerald-950"
+            : "bg-white border border-emerald-900/10 hover:bg-emerald-50 text-emerald-950/80"
+      } ${disabled && !selected && !isWinner ? "opacity-50 cursor-not-allowed" : ""}`}
     >
       <img
         src={`https://flagcdn.com/16x12/${team.flag_code}.png`}
@@ -546,6 +570,7 @@ function TeamButton({
         className="rounded-[1px] shrink-0"
       />
       <span className="text-[11px] truncate">{team.code}</span>
+      {isWinner && <span className="ml-auto text-[10px] text-emerald-700" title="Winner">🏆</span>}
     </button>
   );
 }
