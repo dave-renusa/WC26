@@ -89,14 +89,13 @@ export default async function RulesPage() {
               <div className="text-xs text-emerald-950/50">Predict the tournament top scorer</div>
             </div>
             <div>
-              <span className="text-3xl font-black text-gold">15</span>
+              <span className="text-3xl font-black text-gold">5</span>
               <span className="text-xs text-emerald-950/50 ml-1">pts</span>
             </div>
           </div>
         </div>
         <p className="text-xs text-emerald-950/50 mt-3">
-          Base max (every pick right): <strong className="text-emerald-950">200 pts</strong> —
-          plus <strong className="text-emerald-950">+5</strong> for every knockout game a
+          Plus <strong className="text-emerald-950">+5</strong> for every knockout game a
           3rd-place qualifier you backed pulls off.
         </p>
       </section>

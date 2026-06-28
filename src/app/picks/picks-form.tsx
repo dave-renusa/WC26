@@ -311,7 +311,7 @@ export function PicksForm({
               </li>
               <li>
                 <strong>Then scroll past the matches</strong> for two bonus picks: 8 best
-                3rd-place groups (3 pts each) and the Golden Boot scorer (15 pts).
+                3rd-place groups (3 pts each) and the Golden Boot scorer (5 pts).
               </li>
               <li>
                 <strong>Each group game locks at its own kickoff.</strong> You can change
@@ -474,7 +474,7 @@ export function PicksForm({
 
           <div className="card-gold rounded-2xl p-5">
             <div className="text-[10px] uppercase tracking-widest text-amber-800 font-bold mb-1">
-              Bonus · 15 pts
+              Bonus · 5 pts
             </div>
             <div className="text-lg font-bold text-emerald-950 mb-1">Golden Boot pick</div>
             <p className="text-xs text-emerald-950/80 mb-3">

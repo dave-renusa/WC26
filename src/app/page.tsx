@@ -368,7 +368,6 @@ export default async function Home() {
           <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60">
             Scoring · Every round raises the stakes
           </h2>
-          <span className="text-xs text-emerald-900/40">200+ pts on the line</span>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {ROUNDS.map((r) => (
@@ -420,7 +419,7 @@ export default async function Home() {
               <div className="text-lg font-bold mt-1 text-emerald-950">Golden Boot pick</div>
               <div className="text-xs text-amber-900 mt-0.5">Predict the tournament top scorer</div>
             </div>
-            <div className="text-3xl font-black text-gold">+15</div>
+            <div className="text-3xl font-black text-gold">+5</div>
           </div>
           <div className="card rounded-2xl p-5 flex items-center justify-between border-l-4 !border-l-[var(--usa-red)]">
             <div>

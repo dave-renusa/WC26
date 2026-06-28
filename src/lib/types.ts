@@ -10,7 +10,7 @@ export const STAGE_POINTS: Record<Stage, number> = {
 };
 
 export const THIRD_PLACE_POINTS = 3;
-export const GOLDEN_BOOT_POINTS = 15;
+export const GOLDEN_BOOT_POINTS = 5;
 // +5 each time a player correctly picks a 3rd-place group qualifier to win a
 // knockout game. Awarded automatically from computed group standings.
 export const THIRD_PLACE_WINNER_BONUS = 5;
