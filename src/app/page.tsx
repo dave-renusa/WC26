@@ -148,9 +148,6 @@ export default async function Home() {
         </p>
 
         <div className="mt-10 flex flex-wrap gap-3">
-          <Link href="/login" className="px-7 py-3.5 rounded-xl btn-gold text-base">
-            Join the Pool →
-          </Link>
           <Link
             href="/rules"
             className="px-7 py-3.5 rounded-xl card hover:bg-emerald-50 transition font-semibold text-emerald-950"
