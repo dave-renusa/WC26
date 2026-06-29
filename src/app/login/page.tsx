@@ -12,9 +12,25 @@ export default function LoginPage() {
   );
 }
 
+// Turn a raw callback error (?error=...) into a friendly, actionable message.
+function friendlyAuthError(code: string): string {
+  const c = code.toLowerCase();
+  if (code === "missing_code") {
+    return "That sign-in link was incomplete or had already been used. Request a fresh magic link below.";
+  }
+  if (c.includes("expired")) {
+    return "That magic link has expired or was already used. Magic links are single-use — request a fresh one below and click it right away.";
+  }
+  if (c.includes("code verifier") || c.includes("pkce") || c.includes("invalid request") || c.includes("flow state")) {
+    return "It looks like the link was opened in a different browser or device than the one that requested it. Request a new link below, and open it in the same browser you asked for it from.";
+  }
+  return "Something went wrong finishing sign-in. Request a fresh magic link below and open it in the same browser you requested it from.";
+}
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/picks";
+  const urlError = searchParams.get("error");
 
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -53,6 +69,16 @@ function LoginForm() {
         <p className="text-emerald-950/60 mb-8">
           Drop your email and we&apos;ll send a magic link. No passwords.
         </p>
+
+        {urlError && status !== "sent" && (
+          <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4">
+            <h2 className="text-sm font-bold text-red-900 mb-1">Couldn&apos;t finish signing you in</h2>
+            <p className="text-sm text-red-800">{friendlyAuthError(urlError)}</p>
+            {urlError !== "missing_code" && (
+              <p className="text-[11px] text-red-700/60 mt-2 break-words">Details: {urlError}</p>
+            )}
+          </div>
+        )}
 
         {status === "sent" ? (
           <div className="card-pitch rounded-2xl p-6">
