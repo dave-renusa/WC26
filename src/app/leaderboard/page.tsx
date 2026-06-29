@@ -135,7 +135,7 @@ export default async function LeaderboardPage() {
             <span>Player</span>
             <span className="text-right">Group</span>
             <span className="text-right">3rd Place</span>
-            <span className="text-right">Bracket</span>
+            <span className="text-right">Knockout</span>
             <span className="text-right">Upset &amp; GB Bonus</span>
             <span className="text-right">Total</span>
           </div>
@@ -196,7 +196,7 @@ export default async function LeaderboardPage() {
                       {[
                         { label: "Group", value: groupPts },
                         { label: "3rd Place", value: row.third_place_points },
-                        { label: "Bracket", value: bracketPts },
+                        { label: "Knockout", value: bracketPts },
                         { label: "Upset & GB", value: row.bonus_points },
                         { label: "Total", value: row.total_points, total: true },
                       ].map((s) => (
