@@ -1,0 +1,24 @@
+name: Dump leaderboard HTML
+
+# Manual-only helper: fetches the public /leaderboard page and prints the
+# server-rendered HTML to the run log so it can be inspected from sandboxes
+# that can't reach the production domain directly.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: GET /leaderboard
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o page.html -w "%{http_code}" \
+            "https://wc26-nine.vercel.app/leaderboard")
+          echo "HTTP ${status}"
+          echo "--- html ---"
+          cat page.html
+          echo
+          [ "${status}" = "200" ]
