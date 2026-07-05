@@ -1,43 +1,23 @@
 name: Sync match results from ESPN
 
-# Runs every 10 minutes during the WC26 match window:
-#   15:00–23:59 UTC and 00:00–07:59 UTC
-# Covers earliest kickoff (16:00 UTC = 12pm ET) through latest finals
-# (~06:00 UTC, 9pm PT games + 90 min) plus an hour buffer.
-#
-# Note: GitHub Actions scheduled runs are best-effort and can be delayed
-# during peak load. That's fine for our use case — the sync endpoint is
-# idempotent, so a delayed run just catches up on the next fire.
-#
-# Required repo secrets (Settings → Secrets and variables → Actions):
-#   CRON_SECRET — same value as the Vercel env var. The /api/sync/matches
-#                 route accepts Authorization: Bearer <CRON_SECRET>.
+# TEMPORARY (branch-only): job swapped for a leaderboard HTML dump so the
+# sandbox can read live standings via dispatch-on-this-ref. Reverted after use.
 
 on:
-  schedule:
-    - cron: "*/10 0-7,15-23 * * *"
-  # Allow manual trigger from the Actions tab for testing.
   workflow_dispatch:
 
 jobs:
-  ping-sync:
+  dump-leaderboard:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: POST /api/sync/matches?apply=1
-        env:
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - name: GET /leaderboard
         run: |
           set -euo pipefail
-          if [ -z "${CRON_SECRET}" ]; then
-            echo "::error::CRON_SECRET repo secret is not set"
-            exit 1
-          fi
-          status=$(curl -sS -o response.json -w "%{http_code}" -X POST \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "https://wc26-nine.vercel.app/api/sync/matches?apply=1")
+          status=$(curl -sS -o page.html -w "%{http_code}" \
+            "https://wc26-nine.vercel.app/leaderboard")
           echo "HTTP ${status}"
-          echo "--- response ---"
-          cat response.json
+          echo "--- html ---"
+          cat page.html
           echo
           [ "${status}" = "200" ]
