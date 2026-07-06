@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 // Live countdown to the bracket lock (first R32 kickoff — Sun Jun 28, 3pm ET).
@@ -43,17 +44,24 @@ export function Countdown({ target }: { target?: string | null }) {
   return (
     <div className="card-pitch rounded-2xl p-6 sm:p-8 text-center">
       <div className="text-[10px] uppercase tracking-widest text-emerald-800 font-bold mb-3">
-        {locked ? "Bracket is locked" : "Bracket picks lock in"}
+        {locked ? "It's tight at the top" : "Bracket picks lock in"}
       </div>
 
       {locked ? (
         <div className="py-3">
           <div className="text-3xl sm:text-4xl font-black text-emerald-950">
-            🔒 Picks are in
+            ⚽ How we break a tie
           </div>
-          <p className="mt-2 text-sm text-emerald-900/60">
-            The Round of 32 has kicked off — brackets are frozen. Good luck.
+          <p className="mt-2 text-sm text-emerald-900/60 max-w-md mx-auto">
+            If two or more players finish level on points, we settle it by your
+            Final goals guess first, then most correct picks.
           </p>
+          <Link
+            href="/rules"
+            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-emerald-800 hover:text-emerald-950 transition"
+          >
+            See the full tiebreaker order →
+          </Link>
         </div>
       ) : (
         <>
