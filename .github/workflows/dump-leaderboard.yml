@@ -1,0 +1,20 @@
+name: Dump leaderboard HTML
+
+# Manual-only helper: prints the public /leaderboard HTML to the run log so a
+# sandbox that can't reach production can verify what's rendered live.
+on:
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: GET /leaderboard
+        run: |
+          set -euo pipefail
+          status=$(curl -sS -o page.html -w "%{http_code}" "https://wc26-nine.vercel.app/leaderboard")
+          echo "HTTP ${status}"
+          echo "--- html ---"
+          cat page.html
+          [ "${status}" = "200" ]
