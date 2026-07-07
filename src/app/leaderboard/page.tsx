@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { STAGE_LABEL, type Stage } from "@/lib/types";
 
@@ -153,6 +154,11 @@ export default async function LeaderboardPage() {
     : leaderboard;
   const ranks = computeRanks(ordered);
 
+  // Only advertise tiebreakers once the ladder is actually live (migration 011
+  // applied). Wording shifts once the Final is played and rung 1 turns on.
+  const ladderActive = leaderboard.some((r) => r.position != null);
+  const finalPlayed = leaderboard.some((r) => r.actual_final_total_goals != null);
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 w-full">
       <div className="flex items-end justify-between flex-wrap gap-3">
@@ -168,6 +174,40 @@ export default async function LeaderboardPage() {
           {leaderboard.length} {leaderboard.length === 1 ? "player" : "players"}
         </div>
       </div>
+
+      {ladderActive && leaderboard.length > 0 && (
+        <div className="mt-6 card-pitch rounded-xl px-4 py-3 flex items-start gap-2.5 text-xs sm:text-sm text-emerald-950/80 leading-relaxed">
+          <span aria-hidden className="text-base leading-none mt-0.5">
+            ⚖️
+          </span>
+          <p>
+            <strong className="text-emerald-950">Tiebreakers are in effect.</strong>{" "}
+            {finalPlayed ? (
+              <>
+                Players level on points are ranked by the closest guess to the
+                Final&apos;s total goals, then most correct picks, then
+                round-by-round scoring.
+              </>
+            ) : (
+              <>
+                Total goals in the Final is still tiebreaker #1 — it just
+                can&apos;t be scored until the Final is played. So this is the
+                current standing, with players level on points separated by the
+                next tiebreakers: most correct picks, then round-by-round
+                scoring. Those tied spots can still shift once the Final lands.
+              </>
+            )}{" "}
+            A shared <strong className="text-emerald-950">T</strong> (like T2)
+            marks a genuine tie.{" "}
+            <Link
+              href="/rules"
+              className="font-semibold text-emerald-800 hover:text-emerald-950 underline underline-offset-2"
+            >
+              Full order
+            </Link>
+          </p>
+        </div>
+      )}
 
       {leaderboard.length === 0 ? (
         <div className="mt-8 card rounded-2xl p-8 text-emerald-950/60">
