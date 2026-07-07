@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatEtDeadline } from "@/lib/format";
 import { Countdown } from "./countdown";
+import { TiebreakerLadder } from "./tiebreakers";
 
 export const dynamic = "force-dynamic";
 
@@ -432,6 +433,15 @@ export default async function Home() {
             <div className="text-3xl">⚽</div>
           </div>
         </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-6 pb-16 w-full">
+        <div className="flex items-baseline justify-between mb-4">
+          <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-900/60">
+            If there&apos;s a tie · How we settle a level finish
+          </h2>
+        </div>
+        <TiebreakerLadder />
       </section>
 
     </div>
