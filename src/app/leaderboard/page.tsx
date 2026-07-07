@@ -190,10 +190,11 @@ export default async function LeaderboardPage() {
               </>
             ) : (
               <>
-                When players are level on points, we rank by most correct picks,
-                then round-by-round scoring. Your Final-goals prediction becomes
-                the top tiebreaker once the Final is played — so these spots can
-                still move.
+                Total goals in the Final is still tiebreaker #1 — it just
+                can&apos;t be scored until the Final is played. So this is the
+                current standing, with players level on points separated by the
+                next tiebreakers: most correct picks, then round-by-round
+                scoring. Those tied spots can still shift once the Final lands.
               </>
             )}{" "}
             A shared <strong className="text-emerald-950">T</strong> (like T2)
