@@ -13,6 +13,45 @@ interface LeaderRow {
   predicted_final_total_goals: number | null;
   actual_final_total_goals: number | null;
   tiebreaker_distance: number | null;
+  // Added by migration 011 (v_leaderboard). Optional so the page keeps working
+  // in the window between deploy and the manual Supabase migration.
+  position?: number | null;
+}
+
+// Finishing rank per row, with `tied` set when the position is genuinely shared
+// (equal on every applicable tiebreaker). Uses the view's `position` (the full
+// ladder) when present; before migration 011 is applied it falls back to
+// points-only competition ranking so nothing breaks.
+function computeRanks(
+  rows: LeaderRow[],
+): { rank: number; tied: boolean }[] {
+  const hasLadder = rows.some((r) => r.position != null);
+  if (hasLadder) {
+    const counts = new Map<number, number>();
+    for (const r of rows) counts.set(r.position!, (counts.get(r.position!) ?? 0) + 1);
+    return rows.map((r) => ({ rank: r.position!, tied: (counts.get(r.position!) ?? 1) > 1 }));
+  }
+  let lastPts: number | null = null;
+  let lastRank = 0;
+  const raw = rows.map((r, idx) => {
+    const rank = lastPts !== null && r.total_points === lastPts ? lastRank : idx + 1;
+    lastPts = r.total_points;
+    lastRank = rank;
+    return rank;
+  });
+  const counts = new Map<number, number>();
+  for (const rk of raw) counts.set(rk, (counts.get(rk) ?? 0) + 1);
+  return raw.map((rk) => ({ rank: rk, tied: (counts.get(rk) ?? 1) > 1 }));
+}
+
+function rankColorClass(rank: number): string {
+  return rank === 1
+    ? "text-gold"
+    : rank === 2
+      ? "text-emerald-900"
+      : rank === 3
+        ? "text-amber-800"
+        : "text-emerald-900/40";
 }
 
 interface RoundRow {
@@ -107,6 +146,13 @@ export default async function LeaderboardPage() {
   const lockAt = settings?.group_stage_lock_at as string | null | undefined;
   const tournamentStarted = lockAt ? Date.parse(lockAt) <= Date.now() : false;
 
+  // Order by the tiebreaker ladder (view already sorts by `position`, but sort
+  // client-side too so it's stable regardless), then compute display ranks.
+  const ordered = leaderboard.some((r) => r.position != null)
+    ? [...leaderboard].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    : leaderboard;
+  const ranks = computeRanks(ordered);
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 w-full">
       <div className="flex items-end justify-between flex-wrap gap-3">
@@ -139,27 +185,22 @@ export default async function LeaderboardPage() {
             <span className="text-right">Upset &amp; GB Bonus</span>
             <span className="text-right">Total</span>
           </div>
-          {leaderboard.map((row, i) => {
+          {ordered.map((row, i) => {
             const userRounds = byUser.get(row.user_id);
             const bracketPts = bracketPointsOf(userRounds);
             const groupPts = groupPointsOf(userRounds);
             const tp3 = tp3ByUser.get(row.user_id) ?? { decided: 0, correct: 0, points: 0 };
             const koBonusPts = tpwByUser.get(row.user_id) ?? 0;
             const koWins = Math.round(koBonusPts / 5);
-            const rankColor =
-              i === 0
-                ? "text-gold"
-                : i === 1
-                  ? "text-emerald-900"
-                  : i === 2
-                    ? "text-amber-800"
-                    : "text-emerald-900/40";
+            const { rank, tied } = ranks[i];
+            const displayRank = `${tied ? "T" : ""}${rank}`;
+            const rankColor = rankColorClass(rank);
             return (
               <details key={row.user_id} className="border-b border-emerald-900/5 last:border-b-0 group">
                 <summary className="px-5 py-3 cursor-pointer hover:bg-emerald-50/50 list-none">
                   {/* Desktop: single table row */}
                   <div className="hidden sm:grid grid-cols-[auto_1fr_repeat(5,5.5rem)] gap-x-4 items-center">
-                    <span className={`text-sm font-black w-7 ${rankColor}`}>{i + 1}</span>
+                    <span className={`text-sm font-black w-7 ${rankColor}`}>{displayRank}</span>
                     <span className="font-semibold text-emerald-950 truncate">
                       {row.display_name}
                     </span>
@@ -186,7 +227,7 @@ export default async function LeaderboardPage() {
                       <span
                         className={`shrink-0 inline-flex items-center justify-center min-w-[1.75rem] h-7 px-2 rounded-full bg-emerald-900/5 text-xs font-black tabular-nums ${rankColor}`}
                       >
-                        {i + 1}
+                        {displayRank}
                       </span>
                       <span className="flex-1 min-w-0 font-bold text-base leading-tight text-emerald-950 break-words">
                         {row.display_name}
