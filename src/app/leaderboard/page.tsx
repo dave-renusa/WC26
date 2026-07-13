@@ -80,6 +80,125 @@ interface ThirdPlaceWinnerBonus {
 const STAGE_ORDER: Stage[] = ["group", "r32", "r16", "qf", "sf", "final"];
 const KNOCKOUT_STAGES: Stage[] = ["r32", "r16", "qf", "sf", "final"];
 
+// Points a correct winner pick is worth per stage (matches v_stage_points).
+const STAGE_POINTS: Record<Stage, number> = {
+  group: 1,
+  r32: 1,
+  r16: 3,
+  qf: 5,
+  sf: 8,
+  final: 13,
+};
+
+// The Golden Boot pick is stored as free text (a player's name), so there's no
+// team link in the DB. This maps every player currently picked to their nation
+// so the Golden Boot ceiling (5 pts, see migration 009) drops off once that
+// nation is eliminated — i.e. we only count it for players whose country is
+// still alive. Picks lock at group-stage kickoff, so this list is complete.
+const GOLDEN_BOOT_COUNTRY: Record<string, string> = {
+  "Kylian Mbappé": "France",
+  "Ousmane Dembélé": "France",
+  "Michael Olise": "France",
+  "Harry Kane": "England",
+  "Lionel Messi": "Argentina",
+  "Lamine Yamal": "Spain",
+  "Erling Haaland": "Norway",
+  "Vinícius Júnior": "Brazil",
+};
+
+interface MatchLite {
+  id: number;
+  stage: Stage;
+  team_a_id: number | null;
+  team_b_id: number | null;
+  team_a_from_match_id: number | null;
+  team_b_from_match_id: number | null;
+  winner_team_id: number | null;
+  score_a: number | null;
+  score_b: number | null;
+}
+
+interface PickLite {
+  user_id: string;
+  match_id: number;
+  predicted_winner_team_id: number | null;
+}
+
+// Maximum points still on the table for each user, assuming every remaining
+// pick hits. "Remaining" = picks on matches not yet decided whose predicted
+// team is still able to win, plus the Golden Boot (only if the picked player's
+// nation is still alive), plus any undecided 3rd-place group calls.
+function computeMaxByUser(opts: {
+  leaderboard: LeaderRow[];
+  matches: MatchLite[];
+  undecidedPicks: PickLite[];
+  goldenBoot: Map<string, string | null>;
+  goldenBootDecided: boolean;
+  aliveTeamIds: Set<number>;
+  aliveCountries: Set<string>;
+  thirdPlaceTeamIds: Set<number>;
+  tpUndecidedByUser: Map<string, number>;
+}): Map<string, number> {
+  const mById = new Map(opts.matches.map((m) => [m.id, m]));
+
+  // A future-round knockout row may not have its teams populated yet (sync lag
+  // or the feeding round just finished). Resolve the effective participants by
+  // following the bracket tree to the source matches' winners when possible.
+  const winnerOfSrc = (src: number | null): number | null =>
+    src == null ? null : mById.get(src)?.winner_team_id ?? null;
+  const effectiveTeams = (m: MatchLite): [number | null, number | null] => [
+    m.team_a_id ?? winnerOfSrc(m.team_a_from_match_id),
+    m.team_b_id ?? winnerOfSrc(m.team_b_from_match_id),
+  ];
+
+  const picksByUser = new Map<string, PickLite[]>();
+  for (const p of opts.undecidedPicks) {
+    const arr = picksByUser.get(p.user_id) ?? [];
+    arr.push(p);
+    picksByUser.set(p.user_id, arr);
+  }
+
+  const out = new Map<string, number>();
+  for (const u of opts.leaderboard) {
+    let remaining = 0;
+    for (const p of picksByUser.get(u.user_id) ?? []) {
+      const m = mById.get(p.match_id);
+      const team = p.predicted_winner_team_id;
+      if (!m || team == null) continue;
+
+      let winnable: boolean;
+      if (m.stage === "group") {
+        winnable = true; // group teams are fixed, so the pick can always land
+      } else {
+        const [a, b] = effectiveTeams(m);
+        winnable =
+          a != null && b != null
+            ? team === a || team === b // teams known → must be one of them
+            : opts.aliveTeamIds.has(team); // teams unknown → any still-alive team
+      }
+      if (!winnable) continue;
+
+      remaining += STAGE_POINTS[m.stage];
+      // +5 if a picked 3rd-place group qualifier wins a knockout game.
+      if (m.stage !== "group" && opts.thirdPlaceTeamIds.has(team)) remaining += 5;
+    }
+
+    const gb = opts.goldenBoot.get(u.user_id);
+    if (
+      !opts.goldenBootDecided &&
+      gb &&
+      opts.aliveCountries.has(GOLDEN_BOOT_COUNTRY[gb.trim()] ?? "")
+    ) {
+      remaining += 5;
+    }
+
+    remaining += (opts.tpUndecidedByUser.get(u.user_id) ?? 0) * 3;
+
+    out.set(u.user_id, u.total_points + remaining);
+  }
+  return out;
+}
+
 function fmtPoints(n: number | null | undefined): string {
   if (n == null) return "0";
   // Half-points are real (drawn group games), so keep one decimal when needed.
@@ -103,12 +222,28 @@ export default async function LeaderboardPage() {
     { data: tpScores },
     { data: tpwBonuses },
     { data: settings },
+    { data: matchRows },
+    { data: bonusRows },
+    { data: teamRows },
+    { data: standingRows },
   ] = await Promise.all([
     supabase.from("v_leaderboard").select("*"),
     supabase.from("v_user_round_breakdown").select("*"),
     supabase.from("v_third_place_scores").select("*"),
     supabase.from("v_third_place_winner_bonuses").select("*"),
-    supabase.from("tournament_settings").select("group_stage_lock_at").eq("id", 1).single(),
+    supabase
+      .from("tournament_settings")
+      .select("group_stage_lock_at, golden_boot_winner")
+      .eq("id", 1)
+      .single(),
+    supabase
+      .from("matches")
+      .select(
+        "id, stage, team_a_id, team_b_id, team_a_from_match_id, team_b_from_match_id, winner_team_id, score_a, score_b",
+      ),
+    supabase.from("bonus_picks").select("user_id, golden_boot_player"),
+    supabase.from("teams").select("id, name, actual_finish"),
+    supabase.from("v_group_standings").select("team_id, group_finish"),
   ]);
 
   const leaderboard = (rows ?? []) as LeaderRow[];
@@ -143,6 +278,91 @@ export default async function LeaderboardPage() {
   for (const r of (tpwBonuses ?? []) as ThirdPlaceWinnerBonus[]) {
     tpwByUser.set(r.user_id, r.points);
   }
+
+  // ── Maximum-possible points (ceiling if every remaining pick is correct) ──
+  const matches = (matchRows ?? []) as MatchLite[];
+  const teams = (teamRows ?? []) as {
+    id: number;
+    name: string;
+    actual_finish: number | null;
+  }[];
+  const standings = (standingRows ?? []) as {
+    team_id: number;
+    group_finish: number;
+  }[];
+
+  const teamName = new Map(teams.map((t) => [t.id, t.name]));
+
+  // Alive = a knockout participant that has never lost a knockout match. A team
+  // knocked out in the group stage never enters this set.
+  const koParticipants = new Set<number>();
+  const eliminated = new Set<number>();
+  for (const m of matches) {
+    if (m.stage === "group") continue;
+    for (const t of [m.team_a_id, m.team_b_id]) if (t != null) koParticipants.add(t);
+    if (m.winner_team_id != null) {
+      for (const t of [m.team_a_id, m.team_b_id])
+        if (t != null && t !== m.winner_team_id) eliminated.add(t);
+    }
+  }
+  const aliveTeamIds = new Set(
+    [...koParticipants].filter((t) => !eliminated.has(t)),
+  );
+  const aliveCountries = new Set(
+    [...aliveTeamIds].map((t) => teamName.get(t)).filter((n): n is string => !!n),
+  );
+
+  // Teams that qualified out of their group in 3rd place (admin override wins).
+  const finishOf = new Map<number, number>();
+  for (const s of standings) finishOf.set(s.team_id, s.group_finish);
+  for (const t of teams) if (t.actual_finish != null) finishOf.set(t.id, t.actual_finish);
+  const thirdPlaceTeamIds = new Set(
+    [...finishOf.entries()].filter(([, f]) => f === 3).map(([id]) => id),
+  );
+
+  const goldenBoot = new Map<string, string | null>(
+    ((bonusRows ?? []) as { user_id: string; golden_boot_player: string | null }[]).map(
+      (b) => [b.user_id, b.golden_boot_player],
+    ),
+  );
+  const goldenBootDecided = settings?.golden_boot_winner != null;
+
+  // Undecided 3rd-place group calls (3 pts each) — points is null until the
+  // group's 3rd-placer's fate is known.
+  const tpUndecidedByUser = new Map<string, number>();
+  for (const r of (tpScores ?? []) as ThirdPlaceScore[]) {
+    if (r.points == null)
+      tpUndecidedByUser.set(r.user_id, (tpUndecidedByUser.get(r.user_id) ?? 0) + 1);
+  }
+
+  // Only fetch picks on not-yet-decided matches — keeps the row count tiny (well
+  // under Supabase's 1000-row default) and those are the only picks that can
+  // still add points.
+  const undecidedMatchIds = matches
+    .filter((m) =>
+      m.stage === "group"
+        ? m.score_a == null || m.score_b == null
+        : m.winner_team_id == null,
+    )
+    .map((m) => m.id);
+  const { data: undecidedPickRows } = undecidedMatchIds.length
+    ? await supabase
+        .from("picks")
+        .select("user_id, match_id, predicted_winner_team_id")
+        .in("match_id", undecidedMatchIds)
+    : { data: [] as PickLite[] };
+
+  const maxByUser = computeMaxByUser({
+    leaderboard,
+    matches,
+    undecidedPicks: (undecidedPickRows ?? []) as PickLite[],
+    goldenBoot,
+    goldenBootDecided,
+    aliveTeamIds,
+    aliveCountries,
+    thirdPlaceTeamIds,
+    tpUndecidedByUser,
+  });
 
   const lockAt = settings?.group_stage_lock_at as string | null | undefined;
   const tournamentStarted = lockAt ? Date.parse(lockAt) <= Date.now() : false;
@@ -216,7 +436,7 @@ export default async function LeaderboardPage() {
       ) : (
         <div className="mt-8 card rounded-2xl overflow-hidden">
           {/* Column header — desktop table only; the mobile cards are self-labeled. */}
-          <div className="hidden sm:grid grid-cols-[auto_1fr_repeat(5,5.5rem)] items-end gap-x-4 px-5 py-3 text-[10px] uppercase tracking-wide font-bold text-emerald-900/50 border-b border-emerald-900/10">
+          <div className="hidden sm:grid grid-cols-[auto_1fr_repeat(6,5rem)] items-end gap-x-4 px-5 py-3 text-[10px] uppercase tracking-wide font-bold text-emerald-900/50 border-b border-emerald-900/10">
             <span className="w-7">#</span>
             <span>Player</span>
             <span className="text-right">Group</span>
@@ -224,6 +444,12 @@ export default async function LeaderboardPage() {
             <span className="text-right">Knockout</span>
             <span className="text-right">Upset &amp; GB Bonus</span>
             <span className="text-right">Total</span>
+            <span
+              className="text-right text-emerald-700/70"
+              title="Ceiling if every remaining pick is correct — counts only still-alive teams, and the Golden Boot only if the picked player's nation is still in it."
+            >
+              Max Poss.
+            </span>
           </div>
           {ordered.map((row, i) => {
             const userRounds = byUser.get(row.user_id);
@@ -239,7 +465,7 @@ export default async function LeaderboardPage() {
               <details key={row.user_id} className="border-b border-emerald-900/5 last:border-b-0 group">
                 <summary className="px-5 py-3 cursor-pointer hover:bg-emerald-50/50 list-none">
                   {/* Desktop: single table row */}
-                  <div className="hidden sm:grid grid-cols-[auto_1fr_repeat(5,5.5rem)] gap-x-4 items-center">
+                  <div className="hidden sm:grid grid-cols-[auto_1fr_repeat(6,5rem)] gap-x-4 items-center">
                     <span className={`text-sm font-black w-7 ${rankColor}`}>{displayRank}</span>
                     <span className="font-semibold text-emerald-950 truncate">
                       {row.display_name}
@@ -259,6 +485,9 @@ export default async function LeaderboardPage() {
                     <span className="text-right text-base font-black text-emerald-950 tabular-nums">
                       {fmtPoints(row.total_points)}
                     </span>
+                    <span className="text-right text-sm font-bold text-emerald-700 tabular-nums">
+                      {fmtPoints(maxByUser.get(row.user_id) ?? row.total_points)}
+                    </span>
                   </div>
 
                   {/* Mobile: stacked card */}
@@ -273,34 +502,48 @@ export default async function LeaderboardPage() {
                         {row.display_name}
                       </span>
                     </div>
-                    <div className="mt-3 grid grid-cols-5 gap-1.5">
+                    <div className="mt-3 grid grid-cols-3 gap-1.5">
                       {[
                         { label: "Group", value: groupPts },
                         { label: "3rd Place", value: row.third_place_points },
                         { label: "Knockout", value: bracketPts },
                         { label: "Upset & GB", value: row.bonus_points },
-                        { label: "Total", value: row.total_points, total: true },
-                      ].map((s) => (
-                        <div
-                          key={s.label}
-                          className={`rounded-lg px-1.5 py-1.5 text-center ${
-                            s.total ? "bg-emerald-900/5" : ""
-                          }`}
-                        >
-                          <div className="text-[8px] uppercase tracking-wide font-bold text-emerald-900/50 leading-tight">
-                            {s.label}
-                          </div>
+                        { label: "Total", value: row.total_points, variant: "total" as const },
+                        {
+                          label: "Max Poss.",
+                          value: maxByUser.get(row.user_id) ?? row.total_points,
+                          variant: "max" as const,
+                        },
+                      ].map((s) => {
+                        const variant = (s as { variant?: "total" | "max" }).variant;
+                        return (
                           <div
-                            className={`tabular-nums leading-tight mt-0.5 ${
-                              s.total
-                                ? "text-base font-black text-emerald-950"
-                                : "text-sm font-semibold text-emerald-950/80"
+                            key={s.label}
+                            className={`rounded-lg px-1.5 py-1.5 text-center ${
+                              variant === "total"
+                                ? "bg-emerald-900/5"
+                                : variant === "max"
+                                  ? "bg-emerald-600/10"
+                                  : ""
                             }`}
                           >
-                            {fmtPoints(s.value)}
+                            <div className="text-[8px] uppercase tracking-wide font-bold text-emerald-900/50 leading-tight">
+                              {s.label}
+                            </div>
+                            <div
+                              className={`tabular-nums leading-tight mt-0.5 ${
+                                variant === "total"
+                                  ? "text-base font-black text-emerald-950"
+                                  : variant === "max"
+                                    ? "text-base font-black text-emerald-700"
+                                    : "text-sm font-semibold text-emerald-950/80"
+                              }`}
+                            >
+                              {fmtPoints(s.value)}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </summary>
