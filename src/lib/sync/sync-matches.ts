@@ -16,6 +16,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { fetchEspnEvents, type EspnEvent } from "./espn";
 import { resolveEvents, type ResolvedPair, type OurMatchRow, type TeamRow } from "./resolve";
 import { fillFromCompletedGroups } from "./group-standings";
+import { fillKnockoutFromWinners } from "./knockout-advance";
 
 export interface SyncOptions {
   start: Date;
@@ -447,6 +448,19 @@ export async function runSync(opts: SyncOptions): Promise<SyncReport> {
         match_id: null,
         status: "error",
         reason: `group-standings fill failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+    // Advance winners down the knockout bracket from our own results. Runs after
+    // the group fill and after resolveEvents has written this pass's results, so
+    // a Final whose semifinals just finished is filled in the same pass — and any
+    // slot a stray event (e.g. the third-place playoff) mis-populated is corrected.
+    try {
+      await fillKnockoutFromWinners(supabase);
+    } catch (err) {
+      entries.push({
+        match_id: null,
+        status: "error",
+        reason: `knockout advance failed: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
     try {

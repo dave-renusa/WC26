@@ -478,8 +478,15 @@ function MatchRow({
   match: Match;
   teamById: Map<number, Team>;
 }) {
-  const teamA = match.team_a_id ? teamById.get(match.team_a_id) ?? null : null;
-  const teamB = match.team_b_id ? teamById.get(match.team_b_id) ?? null : null;
+  const isKnockout = match.stage !== "group";
+  const allTeams = useMemo(
+    () => [...teamById.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    [teamById],
+  );
+  const [teamAId, setTeamAId] = useState<number | null>(match.team_a_id);
+  const [teamBId, setTeamBId] = useState<number | null>(match.team_b_id);
+  const teamA = teamAId ? teamById.get(teamAId) ?? null : null;
+  const teamB = teamBId ? teamById.get(teamBId) ?? null : null;
   const [scoreA, setScoreA] = useState<string>(match.score_a == null ? "" : String(match.score_a));
   const [scoreB, setScoreB] = useState<string>(match.score_b == null ? "" : String(match.score_b));
   const [winnerId, setWinnerId] = useState<number | null>(match.winner_team_id);
@@ -489,15 +496,21 @@ function MatchRow({
   const save = () => {
     setMsg("");
     startTransition(async () => {
+      const body: Record<string, number | null> = {
+        match_id: match.id,
+        score_a: scoreA === "" ? null : Number(scoreA),
+        score_b: scoreB === "" ? null : Number(scoreB),
+        winner_team_id: winnerId,
+      };
+      // Group-stage matchups are fixed; only send team edits for knockout rows.
+      if (isKnockout) {
+        body.team_a_id = teamAId;
+        body.team_b_id = teamBId;
+      }
       const res = await fetch("/api/admin/match", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          match_id: match.id,
-          score_a: scoreA === "" ? null : Number(scoreA),
-          score_b: scoreB === "" ? null : Number(scoreB),
-          winner_team_id: winnerId,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       setMsg(res.ok ? "✓" : `Error: ${data.error}`);
@@ -514,15 +527,45 @@ function MatchRow({
         {match.group_code ? `Group ${match.group_code}` : `Slot ${match.bracket_slot ?? "?"}`}
         <div className="text-[10px] text-emerald-900/40">{kickoff}</div>
       </div>
-      <div className="text-sm flex items-center gap-2">
-        <span className="font-semibold text-emerald-950">
-          {teamA?.code ?? "TBD"} ({teamA?.name ?? "—"})
-        </span>
-        <span className="text-emerald-900/40">vs</span>
-        <span className="font-semibold text-emerald-950">
-          {teamB?.code ?? "TBD"} ({teamB?.name ?? "—"})
-        </span>
-      </div>
+      {isKnockout ? (
+        <div className="text-sm flex items-center gap-2">
+          <select
+            value={teamAId == null ? "" : String(teamAId)}
+            onChange={(e) => setTeamAId(e.target.value === "" ? null : Number(e.target.value))}
+            className="min-w-0 flex-1 text-sm px-2 py-1.5 rounded-lg border border-emerald-900/15 bg-white"
+          >
+            <option value="">TBD</option>
+            {allTeams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.code} · {t.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-emerald-900/40">vs</span>
+          <select
+            value={teamBId == null ? "" : String(teamBId)}
+            onChange={(e) => setTeamBId(e.target.value === "" ? null : Number(e.target.value))}
+            className="min-w-0 flex-1 text-sm px-2 py-1.5 rounded-lg border border-emerald-900/15 bg-white"
+          >
+            <option value="">TBD</option>
+            {allTeams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.code} · {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div className="text-sm flex items-center gap-2">
+          <span className="font-semibold text-emerald-950">
+            {teamA?.code ?? "TBD"} ({teamA?.name ?? "—"})
+          </span>
+          <span className="text-emerald-900/40">vs</span>
+          <span className="font-semibold text-emerald-950">
+            {teamB?.code ?? "TBD"} ({teamB?.name ?? "—"})
+          </span>
+        </div>
+      )}
       <div className="flex items-center gap-1">
         <input
           type="number"
